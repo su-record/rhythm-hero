@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#160B3E" />
+    <meta name="description" content="중요한 시간을 물리 버튼처럼 간단하게 기록하는 Rhythm Hero" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="stylesheet" href="styles.css?v=20" />
+    <title>Rhythm Hero</title>
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="#view-today" data-tab="today" aria-label="Rhythm Hero 홈">
+          <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+          <span>Rhythm Hero</span>
+        </a>
+        <span class="sync-status" id="sync-status" aria-live="polite">로컬에 저장됨</span>
+        <button class="device-chip" id="device-status" type="button" aria-label="기기 연결 상태">
+          <span class="status-dot"></span><span id="device-status-text">데모 기기 연결됨</span>
+        </button>
+      </header>
+
+      <section class="now-card global-session-bar hidden" id="now-card" data-session-state="idle" aria-labelledby="now-state-label now-category" tabindex="-1">
+        <div class="now-pulse" aria-hidden="true"></div>
+        <div class="now-copy">
+          <p class="eyebrow" id="now-state-label">지금 기록 중</p>
+          <strong id="now-category">독서</strong>
+        </div>
+        <p class="now-duration" id="now-duration">00:00:00</p>
+        <button class="button dark" id="stop-session" type="button">종료</button>
+      </section>
+
+      <section class="view active" id="view-today" aria-labelledby="today-title">
+        <section class="today-overview" id="today-hero" data-state="idle">
+          <div class="overview-heading">
+            <div>
+              <p class="eyebrow" id="today-date"></p>
+              <h1 id="today-title">오늘의 기록</h1>
+            </div>
+          </div>
+          <div class="total-block">
+            <p class="total-label">오늘 쌓인 시간</p>
+            <p class="total-time" id="today-total">0분</p>
+            <p class="hero-message"><span class="pastel-dot" aria-hidden="true"></span><span id="today-meta">아직 기록을 기다리고 있어요.</span></p>
+          </div>
+        </section>
+
+        <section class="section-heading">
+          <div>
+            <h2>Active 4</h2>
+            <p>지금 가장 시간을 쓰고 싶은 네 가지</p>
+          </div>
+          <div class="section-tools"><span class="keyboard-hint keyboard-only-hint" role="note" aria-label="데스크톱 키보드 단축키 1부터 4까지">키보드 1–4</span><button class="edit-link" id="edit-active4" type="button">편집</button></div>
+        </section>
+        <div class="category-grid" id="category-grid"></div>
+
+        <button class="manual-button" id="manual-start" type="button"><span id="manual-start-icon" aria-hidden="true">＋</span><span id="manual-start-label">앱에서 기록 시작</span></button>
+
+        <section class="mini-insight" id="mini-insight">
+          <div class="mini-insight-copy">
+            <p class="eyebrow">기록에서 발견한 점</p>
+            <p id="mini-insight-text"></p>
+          </div>
+          <button class="text-button" data-tab="reflections" type="button">자세히</button>
+        </section>
+      </section>
+
+      <section class="view" id="view-history" aria-labelledby="history-title">
+        <div class="page-heading">
+          <div>
+            <p class="eyebrow">시간이 쌓인 기록</p>
+            <h1 id="history-title">최근 7일</h1>
+          </div>
+          <div class="segmented" role="group" aria-label="기록 기간">
+            <button class="selected" data-range="7" type="button" aria-pressed="true" aria-controls="heatmap">7일</button>
+            <button data-range="30" type="button" aria-pressed="false" aria-controls="heatmap">30일</button>
+          </div>
+        </div>
+        <section class="history-metrics" aria-label="기간 요약">
+          <div class="metric-cell"><span id="history-period-label">이번 주 누적</span><strong id="week-total">0분</strong></div>
+          <div class="metric-cell"><span>활동한 날</span><strong id="active-days">0일</strong></div>
+          <div class="metric-cell metric-flow"><span>가장 집중한 영역</span><p id="week-summary">아직 기록이 없어요.</p></div>
+        </section>
+        <section class="history-card">
+          <div class="card-heading"><h2>Activity map</h2><span>시간이 많을수록 진하게 표시돼요</span></div>
+          <div class="activity-map-scroll" id="activity-map-scroll" tabindex="0" aria-label="기간별 Category 활동 지도">
+            <div class="week-labels" id="week-labels"></div>
+            <div class="heatmap" id="heatmap"></div>
+          </div>
+        </section>
+        <section class="section-heading compact category-library-heading">
+          <div><h2>모든 Category</h2><p id="category-library-copy">Active 4에서 내려도 기록은 여기에 남아 있어요.</p></div>
+        </section>
+        <div class="category-library" id="category-library"></div>
+        <section class="section-heading compact">
+          <div><h2>최근 기록</h2></div>
+        </section>
+        <div class="session-list" id="session-list"></div>
+      </section>
+
+      <section class="view" id="view-reflections" aria-labelledby="reflection-title">
+        <div class="reflection-hero">
+          <div class="page-heading">
+            <div>
+              <p class="eyebrow">기록이 들려주는 이야기</p>
+              <h1 id="reflection-title">리플렉션</h1>
+            </div>
+            <button class="ai-badge ai-action" id="refresh-ai" type="button">AI 리플렉션 만들기</button>
+          </div>
+        </div>
+        <p class="page-intro reflection-intro">기록에 있는 숫자만 바탕으로, 평가 없이 시간의 패턴을 보여드립니다.</p>
+        <div class="reflection-period-bar">
+          <p id="reflection-period-label">최근 7일</p>
+          <div class="segmented" id="reflection-range-controls" role="group" aria-label="리플렉션 기간">
+            <button class="selected" data-reflection-range="7" type="button" aria-pressed="true" aria-controls="reflection-summary reflection-distribution reflection-list">7일</button>
+            <button data-reflection-range="30" type="button" aria-pressed="false" aria-controls="reflection-summary reflection-distribution reflection-list">30일</button>
+          </div>
+        </div>
+        <section class="reflection-summary" id="reflection-summary" aria-label="선택한 기간 요약">
+          <div class="reflection-summary-item"><span>총 시간</span><strong id="reflection-total">0분</strong></div>
+          <div class="reflection-summary-item"><span>활동일</span><strong id="reflection-active-days">0일</strong></div>
+          <div class="reflection-summary-item"><span>고유 Session</span><strong id="reflection-session-count">0개</strong></div>
+          <div class="reflection-summary-item"><span>활동일 평균</span><strong id="reflection-active-day-average">0분</strong></div>
+        </section>
+        <section class="reflection-distribution-panel" aria-labelledby="reflection-distribution-title">
+          <div class="card-heading"><h2 id="reflection-distribution-title">Category 분포</h2><span>선택한 기간의 시간과 비율</span></div>
+          <div class="reflection-distribution" id="reflection-distribution"></div>
+        </section>
+        <div class="reflection-list" id="reflection-list"></div>
+      </section>
+
+      <section class="view" id="view-settings" aria-labelledby="settings-title">
+        <div class="page-heading">
+          <div>
+            <p class="eyebrow">나에게 맞추기</p>
+            <h1 id="settings-title">설정</h1>
+          </div>
+        </div>
+        <section class="settings-section">
+          <div class="section-heading compact">
+            <div>
+              <h2>Active 4 배치</h2>
+              <p>버튼마다 기록할 영역을 정하세요.</p>
+            </div>
+          </div>
+          <div id="assignment-list" class="assignment-list"></div>
+        </section>
+        <section class="settings-section">
+          <div class="section-heading compact"><div><h2>일일 목표</h2><p>목표는 선택 사항이며, 미달은 실패가 아닙니다.</p></div></div>
+          <div id="goal-list" class="goal-list"></div>
+        </section>
+        <section class="settings-section">
+          <div class="section-heading compact">
+            <div><h2>모든 Category</h2><p>Active 4에서 빼도 과거 기록은 남아 있어요.</p></div>
+            <button class="button secondary" id="add-category" type="button">+ 추가</button>
+          </div>
+          <div id="category-manager" class="category-manager"></div>
+        </section>
+        <section class="settings-section" id="deleted-section">
+          <div class="section-heading compact"><div><h2>최근 삭제한 기록</h2><p>삭제 후 30일 안에는 복구할 수 있어요.</p></div></div>
+          <div id="deleted-session-list" class="category-manager"></div>
+        </section>
+        <section class="settings-section utility-panel device-panel">
+          <div><p class="eyebrow">Rhythm Hero A1B2</p><strong id="device-panel-status">데모 모드</strong><p id="device-panel-copy">키보드 1–4 또는 화면 버튼으로 테스트할 수 있어요.</p></div>
+          <div class="device-actions"><button id="connect-device" class="button secondary" type="button">USB 연결</button><button id="test-hardware" class="button secondary" type="button">테스트</button></div>
+        </section>
+        <section class="settings-section utility-panel data-panel">
+          <div><p class="eyebrow">내 데이터</p><strong>기록은 내보낼 수 있어요.</strong><p>JSON 형식으로 현재 데이터를 다운로드합니다.</p></div>
+          <div class="data-actions"><button id="export-data" class="button secondary" type="button">내보내기</button><button class="button quiet danger" id="reset-demo" type="button">데모 초기화</button></div>
+        </section>
+      </section>
+    </main>
+
+    <nav class="bottom-nav" aria-label="주요 메뉴">
+      <button class="nav-item active" data-tab="today" type="button" aria-current="page" aria-controls="view-today"><span class="nav-icon nav-icon-today" aria-hidden="true"></span>오늘</button>
+      <button class="nav-item" data-tab="history" type="button" aria-current="false" aria-controls="view-history"><span class="nav-icon nav-icon-history" aria-hidden="true"></span>기록</button>
+      <button class="nav-item" data-tab="reflections" type="button" aria-current="false" aria-controls="view-reflections"><span class="nav-icon nav-icon-reflection" aria-hidden="true"></span>리플렉션</button>
+      <button class="nav-item" data-tab="settings" type="button" aria-current="false" aria-controls="view-settings"><span class="nav-icon nav-icon-settings" aria-hidden="true"></span>설정</button>
+    </nav>
+
+    <dialog id="active4-dialog" aria-labelledby="active4-dialog-title">
+      <form method="dialog" id="active4-form">
+        <div class="dialog-header">
+          <div><p class="eyebrow">Hardware mapping</p><h2 id="active4-dialog-title">Active 4 편집</h2></div>
+          <button class="icon-button" value="cancel" type="submit" aria-label="닫기">×</button>
+        </div>
+        <p class="dialog-copy">각 버튼에 연결할 Category를 선택하세요. 교체해도 이전 시간은 그대로 보관됩니다.</p>
+        <div class="active4-editor" id="active4-editor-list"></div>
+        <div class="preserve-note"><span aria-hidden="true">✓</span><p><strong>기록은 사라지지 않아요.</strong><br />Active 4는 버튼 연결만 변경합니다.</p></div>
+        <button class="button full" id="save-active4" value="default" type="submit">변경사항 저장</button>
+      </form>
+    </dialog>
+
+    <dialog id="record-dialog" aria-labelledby="record-dialog-title">
+      <form method="dialog" id="record-form">
+        <div class="dialog-header">
+          <div><p class="eyebrow">직접 기록</p><h2 id="record-dialog-title">어떤 시간을 기록할까요?</h2></div>
+          <button class="icon-button" value="cancel" type="submit" aria-label="닫기">×</button>
+        </div>
+        <label>Category<select id="manual-category"></select></label>
+        <p class="dialog-copy">Category를 고르고 지금부터 시간을 기록하세요.</p>
+        <button class="button full" id="manual-confirm" value="default" type="submit">지금 기록 시작</button>
+      </form>
+    </dialog>
+
+    <dialog id="category-detail-dialog" aria-labelledby="category-detail-title">
+      <form method="dialog" id="category-detail-form">
+        <div class="dialog-header category-detail-header">
+          <div><p class="eyebrow" id="category-detail-status">Category 기록</p><div class="category-detail-title-row"><span id="category-detail-color" aria-hidden="true"></span><h2 id="category-detail-title">독서</h2></div></div>
+          <div class="category-detail-header-actions"><button class="button quiet category-edit-button" id="edit-category-detail" type="button">이름 편집</button><button class="icon-button" value="cancel" type="submit" aria-label="닫기">×</button></div>
+        </div>
+        <p class="dialog-copy" id="category-detail-meta">전체 기간에 쌓인 기록입니다.</p>
+        <div class="category-detail-metrics">
+          <div><span>전체 누적</span><strong id="category-detail-total">0분</strong></div>
+          <div><span>활동한 날</span><strong id="category-detail-days">0일</strong></div>
+          <div><span>Session</span><strong id="category-detail-sessions">0개</strong></div>
+        </div>
+        <section class="detail-activity">
+          <div class="detail-section-title"><strong>최근 4주</strong><span>시간이 많을수록 진하게 표시돼요</span></div>
+          <div class="detail-heatmap" id="category-detail-heatmap"></div>
+        </section>
+        <section class="detail-sessions-section">
+          <div class="detail-section-title"><strong>최근 Session</strong></div>
+          <div class="detail-session-list" id="category-detail-session-list"></div>
+        </section>
+        <section class="detail-active4-controls hidden" id="category-detail-active4-controls">
+          <label>교체할 버튼<select id="category-detail-target-slot" aria-label="교체할 Active 4 버튼"></select></label>
+          <p id="category-detail-replacement-copy"></p>
+          <button class="button full" id="category-detail-add-active4" type="button">Active 4에 추가</button>
+        </section>
+      </form>
+    </dialog>
+
+    <dialog id="session-dialog" aria-labelledby="session-dialog-title">
+      <form method="dialog" id="session-form">
+        <div class="dialog-header"><div><p class="eyebrow">기록 수정</p><h2 id="session-dialog-title">남긴 시간을 다듬어요</h2></div><button class="icon-button" value="cancel" type="submit" aria-label="닫기">×</button></div>
+        <input id="session-id" type="hidden" />
+        <label>Category<select id="session-category"></select></label>
+        <label>날짜<input id="session-date" type="date" required /></label>
+        <div class="inline-fields"><label>시작 시간<input id="session-time" type="time" required /></label><label>지속 시간(분)<input id="session-duration" type="number" min="1" max="720" required /></label></div>
+        <label>한 줄 메모 <span>선택</span><input id="session-memo" type="text" maxlength="160" /></label>
+        <div class="dialog-actions"><button class="button secondary danger" id="delete-session" value="default" type="submit">삭제</button><button class="button" id="save-session" value="default" type="submit">저장</button></div>
+      </form>
+    </dialog>
+
+    <dialog id="category-dialog" aria-labelledby="category-dialog-title">
+      <form method="dialog" id="category-form">
+        <div class="dialog-header"><div><p class="eyebrow" id="category-dialog-eyebrow">새 Category</p><h2 id="category-dialog-title">남기고 싶은 시간을 추가하세요</h2></div><button class="icon-button" value="cancel" type="submit" formnovalidate aria-label="닫기">×</button></div>
+        <label>이름<input id="new-category-name" type="text" minlength="1" maxlength="20" required aria-describedby="category-name-error" placeholder="예: 영어" /></label>
+        <p class="field-error" id="category-name-error" role="alert" aria-live="polite" hidden></p>
+        <div class="inline-fields"><label>색상<input id="new-category-color" type="color" value="#F1A75B" /></label><label>일일 목표(분)<input id="new-category-goal" type="number" min="0" max="720" value="30" /></label></div>
+        <button class="button full" id="save-category" value="default" type="submit">Category 추가</button>
+      </form>
+    </dialog>
+
+    <dialog id="device-dialog" aria-labelledby="device-dialog-title">
+      <form method="dialog">
+        <div class="dialog-header"><div><p class="eyebrow">Hardware Bridge</p><h2 id="device-dialog-title">Rhythm Hero 연결</h2></div><button class="icon-button" value="cancel" type="submit" aria-label="닫기">×</button></div>
+        <p class="dialog-copy">Chrome에서 USB로 연결된 개발보드의 버튼 입력을 바로 받을 수 있습니다. 보드는 한 줄씩 JSON 또는 <code>BUTTON:1</code> 형식으로 이벤트를 보내면 됩니다.</p>
+        <div class="connection-state" id="connection-state">현재: 데모 모드</div>
+        <button class="button full" id="serial-connect" type="button">USB Serial 연결</button>
+        <button class="button secondary full hidden" id="serial-disconnect" type="button">연결 해제</button>
+      </form>
+    </dialog>
+
+    <dialog id="toast" class="toast" aria-live="polite"><p id="toast-text"></p></dialog>
+
+    <script defer src="app.js?v=20"></script>
+  </body>
+</html>
