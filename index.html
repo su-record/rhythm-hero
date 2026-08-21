@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#160B3E" />
     <meta name="description" content="중요한 시간을 물리 버튼처럼 간단하게 기록하는 Rhythm Hero" />
     <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="stylesheet" href="styles.css?v=20" />
+    <link rel="stylesheet" href="styles.css?v=21" />
     <title>Rhythm Hero</title>
   </head>
   <body>
@@ -58,6 +58,16 @@
 
         <button class="manual-button" id="manual-start" type="button"><span id="manual-start-icon" aria-hidden="true">＋</span><span id="manual-start-label">앱에서 기록 시작</span></button>
 
+        <section class="memo-inbox hidden" id="memo-inbox" aria-labelledby="memo-inbox-title">
+          <div class="memo-inbox-icon" aria-hidden="true">✎</div>
+          <div class="memo-inbox-copy">
+            <p class="eyebrow">한 줄을 기다리는 기록</p>
+            <strong id="memo-inbox-title">방금 끝낸 시간을 기록해보세요.</strong>
+            <p id="memo-inbox-meta"></p>
+          </div>
+          <button class="button secondary" id="open-pending-memo" type="button">메모 남기기</button>
+        </section>
+
         <section class="mini-insight" id="mini-insight">
           <div class="mini-insight-copy">
             <p class="eyebrow">기록에서 발견한 점</p>
@@ -96,6 +106,7 @@
         <div class="category-library" id="category-library"></div>
         <section class="section-heading compact">
           <div><h2>최근 기록</h2></div>
+          <button class="text-button hidden" id="review-pending-memos" type="button">메모 대기 <span id="pending-memo-count">0</span></button>
         </section>
         <div class="session-list" id="session-list"></div>
       </section>
@@ -180,6 +191,16 @@
       <button class="nav-item" data-tab="settings" type="button" aria-current="false" aria-controls="view-settings"><span class="nav-icon nav-icon-settings" aria-hidden="true"></span>설정</button>
     </nav>
 
+    <aside class="post-session-prompt hidden" id="post-session-prompt" role="status" aria-live="polite" aria-atomic="true" aria-labelledby="post-session-title">
+      <span class="post-session-check" aria-hidden="true">✓</span>
+      <div class="post-session-copy">
+        <strong id="post-session-title">기록 완료</strong>
+        <span id="post-session-meta">한 줄 메모를 남겨보세요.</span>
+      </div>
+      <button class="button small" id="post-session-write" type="button">메모</button>
+      <button class="icon-button" id="post-session-dismiss" type="button" aria-label="메모 알림 닫기">×</button>
+    </aside>
+
     <dialog id="active4-dialog" aria-labelledby="active4-dialog-title">
       <form method="dialog" id="active4-form">
         <div class="dialog-header">
@@ -245,6 +266,26 @@
       </form>
     </dialog>
 
+    <dialog class="completion-dialog" id="completion-dialog" aria-labelledby="completion-dialog-title" aria-describedby="completion-summary completion-memo-hint">
+      <form method="dialog" id="completion-form">
+        <input id="completion-session-id" type="hidden" />
+        <div class="completion-celebration" aria-hidden="true"><span>✓</span></div>
+        <div class="completion-heading">
+          <p class="eyebrow" id="completion-category">기록 완료</p>
+          <h2 id="completion-dialog-title" tabindex="-1">방금 한 일을 한 줄로 남길까요?</h2>
+          <p id="completion-summary">독서 · 42분</p>
+        </div>
+        <label class="completion-memo-label" for="completion-memo">오늘 한 줄 <span>선택</span></label>
+        <input id="completion-memo" type="text" maxlength="160" autocomplete="off" enterkeyhint="done" placeholder="예: 3장까지 읽었고 집중이 잘 됐어요" />
+        <p class="dialog-copy" id="completion-memo-hint">시간 기록은 이미 안전하게 저장됐어요.</p>
+        <div class="completion-actions">
+          <button class="button quiet" id="completion-later" type="button">나중에</button>
+          <button class="button secondary" id="completion-skip" type="button">메모 없이 완료</button>
+          <button class="button" id="completion-save" type="submit" value="default">메모 저장</button>
+        </div>
+      </form>
+    </dialog>
+
     <dialog id="category-dialog" aria-labelledby="category-dialog-title">
       <form method="dialog" id="category-form">
         <div class="dialog-header"><div><p class="eyebrow" id="category-dialog-eyebrow">새 Category</p><h2 id="category-dialog-title">남기고 싶은 시간을 추가하세요</h2></div><button class="icon-button" value="cancel" type="submit" formnovalidate aria-label="닫기">×</button></div>
@@ -267,6 +308,6 @@
 
     <dialog id="toast" class="toast" aria-live="polite"><p id="toast-text"></p></dialog>
 
-    <script defer src="app.js?v=20"></script>
+    <script defer src="app.js?v=21"></script>
   </body>
 </html>

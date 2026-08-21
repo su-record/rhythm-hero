@@ -8,6 +8,6 @@
     "start": "node server.mjs",
     "build:mockup": "node scripts/build-public-mockup.mjs",
     "check": "node --check app.js && node --check state-utils.mjs && node --check sw.js && node --check server.mjs",
-    "test": "node --test tests/server.integration.test.mjs"
+    "test": "node --test tests/server.integration.test.mjs tests/session-state.test.mjs"
   }
 }

@@ -38,6 +38,50 @@ function applyActiveAssignments(currentState, assignments) {
   };
 }
 
+function completeActiveSession(currentState, endedAt = new Date().toISOString()) {
+  if (!currentState || !Array.isArray(currentState.sessions)) throw new Error("Invalid Rhythm Hero state");
+  if (!currentState.activeSession) return { state: currentState, completedSession: null };
+  const completedSession = {
+    ...currentState.activeSession,
+    endedAt,
+    status: "completed",
+    memoCaptureState: "pending",
+    memoCaptureCreatedAt: endedAt,
+  };
+  return {
+    state: { ...currentState, sessions: [...currentState.sessions, completedSession], activeSession: null },
+    completedSession,
+  };
+}
+
+function updateSessionMemo(currentState, sessionId, memo, captureState, updatedAt = new Date().toISOString()) {
+  if (!currentState || !Array.isArray(currentState.sessions)) throw new Error("Invalid Rhythm Hero state");
+  if (!new Set(["saved", "skipped"]).has(captureState)) throw new Error("Invalid memo capture state");
+  const normalizedMemo = String(memo || "").trim().slice(0, 160);
+  if (captureState === "saved" && !normalizedMemo) throw new Error("A saved memo cannot be empty");
+  let updatedSession = null;
+  const sessions = currentState.sessions.map((session) => {
+    if (session.id !== sessionId || session.status !== "completed") return session;
+    updatedSession = {
+      ...session,
+      memo: normalizedMemo,
+      memoCaptureState: captureState,
+      memoUpdatedAt: updatedAt,
+      updatedAt,
+    };
+    return updatedSession;
+  });
+  return { state: updatedSession ? { ...currentState, sessions } : currentState, updatedSession };
+}
+
+function getPendingMemoSessionIds(currentState) {
+  if (!currentState || !Array.isArray(currentState.sessions)) return [];
+  return currentState.sessions
+    .filter((session) => session.status === "completed" && session.memoCaptureState === "pending")
+    .sort((left, right) => new Date(left.endedAt || left.startedAt) - new Date(right.endedAt || right.startedAt))
+    .map((session) => session.id);
+}
+
 /* Rhythm Hero prototype. Local storage is the offline source of truth; a local beta API mirrors it when available. */
 const STORAGE_KEY = "habit-toy-state-v1";
 const CLIENT_ID_KEY = "habit-toy-client-id-v1";
@@ -118,6 +162,9 @@ function loadState() {
 
 let state = loadState();
 let toastTimer;
+let postSessionPromptTimer;
+let postSessionPromptId = null;
+let completionSessionId = null;
 const serialDevice = { port: null, reader: null, writer: null, connected: false, buffer: "", lastPayload: "" };
 let serialWriteQueue = Promise.resolve();
 const clientId = (() => {
@@ -238,6 +285,115 @@ function showToast(message) {
   toastTimer = setTimeout(() => toast.close(), 2400);
 }
 
+function pendingMemoSessions() {
+  return getPendingMemoSessionIds(state)
+    .map((id) => state.sessions.find((session) => session.id === id))
+    .filter(Boolean);
+}
+
+function hidePostSessionPrompt() {
+  clearTimeout(postSessionPromptTimer);
+  postSessionPromptId = null;
+  $("#post-session-prompt")?.classList.add("hidden");
+}
+
+function showPostSessionPrompt(sessionId) {
+  const session = state.sessions.find((item) => item.id === sessionId && item.status === "completed" && item.memoCaptureState === "pending");
+  if (!session || $("#completion-dialog")?.open) return;
+  const pending = pendingMemoSessions();
+  const category = categoryById(session.categoryId);
+  postSessionPromptId = session.id;
+  if (pending.length > 1) {
+    $("#post-session-title").textContent = `메모를 기다리는 기록 ${pending.length}개`;
+    $("#post-session-meta").textContent = "최근 기록부터 한 줄씩 남길 수 있어요.";
+    $("#post-session-write").textContent = "한 줄씩";
+  } else {
+    $("#post-session-title").textContent = `${category?.name || "기록"} ${formatMinutes(durationMs(session) / 60_000)} 완료`;
+    const runningCategory = state.activeSession ? categoryById(state.activeSession.categoryId) : null;
+    $("#post-session-meta").textContent = runningCategory ? `${runningCategory.name} 기록은 계속 진행 중이에요.` : "지금 떠오르는 걸 한 줄로 남겨보세요.";
+    $("#post-session-write").textContent = "메모";
+  }
+  $("#post-session-prompt").classList.remove("hidden");
+  clearTimeout(postSessionPromptTimer);
+  postSessionPromptTimer = setTimeout(hidePostSessionPrompt, 9000);
+}
+
+function renderPendingMemoRecovery() {
+  const pending = pendingMemoSessions();
+  const inbox = $("#memo-inbox");
+  const reviewButton = $("#review-pending-memos");
+  if (!pending.length) {
+    inbox.classList.add("hidden");
+    reviewButton.classList.add("hidden");
+    if (postSessionPromptId) hidePostSessionPrompt();
+    return;
+  }
+  const latest = pending[pending.length - 1];
+  const category = categoryById(latest.categoryId);
+  inbox.classList.remove("hidden");
+  reviewButton.classList.remove("hidden");
+  $("#memo-inbox-title").textContent = pending.length === 1 ? "방금 끝낸 시간을 한 줄로 남겨보세요." : `메모를 기다리는 기록이 ${pending.length}개 있어요.`;
+  $("#memo-inbox-meta").textContent = pending.length === 1
+    ? `${category?.name || "기록"} · ${formatMinutes(durationMs(latest) / 60_000)}`
+    : `가장 최근 기록은 ${category?.name || "기록"} ${formatMinutes(durationMs(latest) / 60_000)}이에요.`;
+  $("#pending-memo-count").textContent = String(pending.length);
+}
+
+function openCompletionDialog(sessionId) {
+  const session = state.sessions.find((item) => item.id === sessionId && item.status === "completed" && item.memoCaptureState === "pending");
+  if (!session) return false;
+  const anotherDialog = $("dialog[open]:not(#toast):not(#completion-dialog)");
+  if (anotherDialog) {
+    showPostSessionPrompt(session.id);
+    return false;
+  }
+  const category = categoryById(session.categoryId);
+  const clock = new Intl.DateTimeFormat("ko-KR", { hour: "2-digit", minute: "2-digit", hour12: false });
+  completionSessionId = session.id;
+  $("#completion-session-id").value = session.id;
+  $("#completion-category").textContent = `${category?.name || "기록"} 완료`;
+  $("#completion-summary").textContent = `${formatMinutes(durationMs(session) / 60_000)} · ${clock.format(new Date(session.startedAt))}–${clock.format(new Date(session.endedAt))}`;
+  const memoInput = $("#completion-memo");
+  memoInput.value = session.memo || "";
+  memoInput.setCustomValidity("");
+  $("#completion-save").disabled = !memoInput.value.trim();
+  hidePostSessionPrompt();
+  $("#completion-dialog").showModal();
+  requestAnimationFrame(() => {
+    if (matchMedia("(min-width: 640px) and (pointer: fine)").matches) memoInput.focus();
+    else $("#completion-dialog-title").focus();
+  });
+  return true;
+}
+
+function openNextPendingMemo() {
+  const next = pendingMemoSessions()[0];
+  if (next) openCompletionDialog(next.id);
+}
+
+function settleCompletionMemo(captureState) {
+  const sessionId = completionSessionId || $("#completion-session-id").value;
+  const memoInput = $("#completion-memo");
+  const memo = memoInput.value.trim();
+  if (captureState === "saved" && !memo) {
+    memoInput.setCustomValidity("한 줄 메모를 입력하거나 ‘메모 없이 완료’를 선택해주세요.");
+    memoInput.reportValidity();
+    memoInput.focus();
+    return false;
+  }
+  const result = updateSessionMemo(state, sessionId, captureState === "saved" ? memo : "", captureState);
+  if (!result.updatedSession) return false;
+  state = result.state;
+  completionSessionId = null;
+  $("#completion-dialog").close();
+  saveState();
+  render();
+  showToast(captureState === "saved" ? "한 줄 메모까지 저장했어요." : "시간 기록을 저장했어요.");
+  const next = pendingMemoSessions()[0];
+  if (next) setTimeout(() => showPostSessionPrompt(next.id), 2600);
+  return true;
+}
+
 function renderTodayDate() {
   $("#today-date").textContent = new Intl.DateTimeFormat("ko-KR", { month: "long", day: "numeric", weekday: "long" }).format(new Date());
 }
@@ -324,7 +480,8 @@ function renderHistory() {
   $("#session-list").innerHTML = recent.map((session) => {
     const category = categoryById(session.categoryId);
     const from = new Intl.DateTimeFormat("ko-KR", { hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date(session.startedAt));
-    return `<button class="session-item" data-session-id="${escapeHtml(session.id)}" style="--category:${safeColor(category.color)}" type="button"><span class="session-color"></span><span class="session-info"><strong>${escapeHtml(category.name)}</strong><span>${from} 시작 · ${session.source === "device" ? "버튼 기록" : "앱 기록"}${session.memo ? " · 메모 있음" : ""}</span></span><span class="session-duration">${formatMinutes(durationMs(session) / 60_000)}</span></button>`;
+    const memoLabel = session.memo ? " · 메모 있음" : session.memoCaptureState === "pending" ? " · 한 줄 기다림" : "";
+    return `<button class="session-item ${session.memoCaptureState === "pending" ? "memo-pending" : ""}" data-session-id="${escapeHtml(session.id)}" style="--category:${safeColor(category.color)}" type="button"><span class="session-color"></span><span class="session-info"><strong>${escapeHtml(category.name)}</strong><span>${from} 시작 · ${session.source === "device" ? "버튼 기록" : "앱 기록"}${memoLabel}</span></span>${session.memoCaptureState === "pending" ? '<span class="session-note-badge">메모 대기</span>' : ""}<span class="session-duration">${formatMinutes(durationMs(session) / 60_000)}</span></button>`;
   }).join("") || `<p class="page-intro">아직 완료된 기록이 없어요.</p>`;
   $$("[data-session-id]").forEach((item) => item.addEventListener("click", () => openSessionDialog(item.dataset.sessionId)));
   renderCategoryLibrary();
@@ -726,7 +883,7 @@ function renderDeviceStatus() {
   $("#serial-connect").classList.toggle("hidden", connected);
   $("#serial-disconnect").classList.toggle("hidden", !connected);
 }
-function render() { renderToday(); renderHistory(); renderReflections(); renderSettings(); renderManualOptions(); renderDeviceStatus(); syncDeviceLights(); }
+function render() { renderToday(); renderHistory(); renderReflections(); renderSettings(); renderManualOptions(); renderDeviceStatus(); renderPendingMemoRecovery(); syncDeviceLights(); }
 
 function revealActiveSession() {
   const activeCategory = state.activeSession ? categoryById(state.activeSession.categoryId) : null;
@@ -752,21 +909,27 @@ function startSession(categoryId, source = "device", { notify = true } = {}) {
   return true;
 }
 
-function stopSession({ notify = true } = {}) {
-  if (!state.activeSession) return;
-  const session = { ...state.activeSession, endedAt: new Date().toISOString(), status: "completed" };
-  state.sessions.push(session); state.activeSession = null; saveState(); render();
-  if (notify) showToast(`${categoryById(session.categoryId).name} ${formatMinutes(durationMs(session) / 60_000)}을 기록했어요.`);
+function stopSession({ notify = false, memoMode = "dialog" } = {}) {
+  const result = completeActiveSession(state);
+  if (!result.completedSession) return null;
+  state = result.state;
+  saveState();
+  render();
+  const session = result.completedSession;
+  if (memoMode === "dialog") openCompletionDialog(session.id);
+  else if (memoMode === "prompt") showPostSessionPrompt(session.id);
+  else if (notify) showToast(`${categoryById(session.categoryId).name} ${formatMinutes(durationMs(session) / 60_000)}을 기록했어요.`);
+  return session;
 }
 
 function pressButton(index) {
   const categoryId = state.assignments[index - 1];
   if (!categoryId) return showToast("아직 연결되지 않은 버튼이에요.");
   if (!state.activeSession) return startSession(categoryId, "device");
-  if (state.activeSession.categoryId === categoryId) return stopSession();
-  const previous = categoryById(state.activeSession.categoryId).name;
-  stopSession({ notify: false }); startSession(categoryId, "device", { notify: false });
-  showToast(`${previous}을 끝내고 ${categoryById(categoryId).name}을 시작했어요.`);
+  if (state.activeSession.categoryId === categoryId) return stopSession({ memoMode: "dialog" });
+  const completed = stopSession({ notify: false, memoMode: "none" });
+  startSession(categoryId, "device", { notify: false });
+  if (completed) showPostSessionPrompt(completed.id);
 }
 
 function openSessionDialog(id) {
@@ -793,6 +956,10 @@ function saveSessionFromDialog() {
   session.startedAt = started.toISOString();
   session.endedAt = new Date(started.getTime() + minutes * 60_000).toISOString();
   session.memo = $("#session-memo").value.trim();
+  if (session.memo) {
+    session.memoCaptureState = "saved";
+    session.memoUpdatedAt = new Date().toISOString();
+  } else if (session.memoCaptureState === "pending") session.memoCaptureState = "skipped";
   session.updatedAt = new Date().toISOString();
   saveState(); render(); $("#session-dialog").close(); showToast("기록을 수정했어요.");
 }
@@ -801,6 +968,7 @@ function deleteSessionFromDialog() {
   const id = $("#session-id").value;
   const session = state.sessions.find((item) => item.id === id);
   if (!session) return;
+  if (session.memoCaptureState === "pending") session.memoCaptureState = "skipped";
   session.status = "deleted";
   session.deletedAt = new Date().toISOString();
   saveState(); render(); $("#session-dialog").close(); showToast("기록을 삭제했어요. 30일 안에 복구할 수 있어요.");
@@ -1089,7 +1257,38 @@ function wireEvents() {
     $("#category-detail-dialog").close();
     openCategoryEditor(id);
   });
-  $("#stop-session").addEventListener("click", () => stopSession());
+  $("#stop-session").addEventListener("click", () => stopSession({ memoMode: "dialog" }));
+  $("#open-pending-memo").addEventListener("click", openNextPendingMemo);
+  $("#review-pending-memos").addEventListener("click", openNextPendingMemo);
+  $("#post-session-write").addEventListener("click", () => {
+    const target = postSessionPromptId || pendingMemoSessions()[0]?.id;
+    if (target) openCompletionDialog(target);
+  });
+  $("#post-session-dismiss").addEventListener("click", hidePostSessionPrompt);
+  $("#completion-memo").addEventListener("input", () => {
+    const input = $("#completion-memo");
+    input.setCustomValidity("");
+    $("#completion-save").disabled = !input.value.trim();
+  });
+  $("#completion-form").addEventListener("submit", (event) => {
+    if (event.submitter?.id !== "completion-save") return;
+    event.preventDefault();
+    settleCompletionMemo("saved");
+  });
+  $("#completion-skip").addEventListener("click", () => settleCompletionMemo("skipped"));
+  $("#completion-later").addEventListener("click", () => {
+    completionSessionId = null;
+    $("#completion-dialog").close();
+    renderPendingMemoRecovery();
+    showToast("시간은 저장했어요. 메모는 나중에 남길 수 있어요.");
+  });
+  $("#completion-dialog").addEventListener("cancel", (event) => {
+    event.preventDefault();
+    completionSessionId = null;
+    $("#completion-dialog").close();
+    renderPendingMemoRecovery();
+    showToast("시간은 저장했어요. 메모는 나중에 남길 수 있어요.");
+  });
   $("#manual-start").addEventListener("click", () => {
     if (state.activeSession) return revealActiveSession();
     $("#record-dialog").showModal();
@@ -1147,5 +1346,5 @@ if ("serviceWorker" in navigator) {
     refreshingForUpdate = true;
     window.location.reload();
   });
-  navigator.serviceWorker.register("sw.js?v=20", { updateViaCache: "none" }).then((registration) => registration.update()).catch(() => {});
+  navigator.serviceWorker.register("sw.js?v=21", { updateViaCache: "none" }).then((registration) => registration.update()).catch(() => {});
 }

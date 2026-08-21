@@ -20,3 +20,47 @@ export function applyActiveAssignments(state, assignments) {
     sessions: state.sessions,
   };
 }
+
+export function completeActiveSession(state, endedAt = new Date().toISOString()) {
+  if (!state || !Array.isArray(state.sessions)) throw new Error("Invalid Rhythm Hero state");
+  if (!state.activeSession) return { state, completedSession: null };
+  const completedSession = {
+    ...state.activeSession,
+    endedAt,
+    status: "completed",
+    memoCaptureState: "pending",
+    memoCaptureCreatedAt: endedAt,
+  };
+  return {
+    state: { ...state, sessions: [...state.sessions, completedSession], activeSession: null },
+    completedSession,
+  };
+}
+
+export function updateSessionMemo(state, sessionId, memo, captureState, updatedAt = new Date().toISOString()) {
+  if (!state || !Array.isArray(state.sessions)) throw new Error("Invalid Rhythm Hero state");
+  if (!new Set(["saved", "skipped"]).has(captureState)) throw new Error("Invalid memo capture state");
+  const normalizedMemo = String(memo || "").trim().slice(0, 160);
+  if (captureState === "saved" && !normalizedMemo) throw new Error("A saved memo cannot be empty");
+  let updatedSession = null;
+  const sessions = state.sessions.map((session) => {
+    if (session.id !== sessionId || session.status !== "completed") return session;
+    updatedSession = {
+      ...session,
+      memo: normalizedMemo,
+      memoCaptureState: captureState,
+      memoUpdatedAt: updatedAt,
+      updatedAt,
+    };
+    return updatedSession;
+  });
+  return { state: updatedSession ? { ...state, sessions } : state, updatedSession };
+}
+
+export function getPendingMemoSessionIds(state) {
+  if (!state || !Array.isArray(state.sessions)) return [];
+  return state.sessions
+    .filter((session) => session.status === "completed" && session.memoCaptureState === "pending")
+    .sort((left, right) => new Date(left.endedAt || left.startedAt) - new Date(right.endedAt || right.startedAt))
+    .map((session) => session.id);
+}

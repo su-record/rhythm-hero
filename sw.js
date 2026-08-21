@@ -1,9 +1,9 @@
-const CACHE = "rhythm-hero-v20";
+const CACHE = "rhythm-hero-v21";
 const ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=20",
-  "./app.js?v=20",
+  "./styles.css?v=21",
+  "./app.js?v=21",
   "./time-utils.mjs",
   "./state-utils.mjs",
   "./manifest.webmanifest",
