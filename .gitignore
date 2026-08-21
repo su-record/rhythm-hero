@@ -1,2 +1,5 @@
 .habit-toy-data/
 .env
+.site-artifacts/
+dist/
+tmp/
