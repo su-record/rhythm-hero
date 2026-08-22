@@ -1,12 +1,13 @@
 import { useMemo } from "react";
 
-import { formatMinutes } from "../domain/format.ts";
-import { categoryById, todayMinutes, totalTodayMinutes } from "../domain/stats.ts";
+import { buildDayCards, deriveRoutine, describeRoutine } from "../domain/routine.ts";
+import { categoryById, todayMinutes } from "../domain/stats.ts";
 import type { AppState, Session } from "../domain/types.ts";
 import { CategoryCard } from "../components/CategoryCard.tsx";
 import { Companion, type CompanionMood } from "../components/Companion.tsx";
 import { MemoInbox } from "../components/MemoInbox.tsx";
 import { MiniInsight } from "../components/MiniInsight.tsx";
+import { RoutineDeck } from "../components/RoutineDeck.tsx";
 
 interface TodayViewProps {
   state: AppState;
@@ -24,9 +25,7 @@ interface TodayViewProps {
   onEditActive4: () => void;
 }
 
-function todayLabel(): string {
-  return new Intl.DateTimeFormat("ko-KR", { month: "long", day: "numeric", weekday: "long" }).format(new Date());
-}
+const DECK_DAYS = 7;
 
 export function TodayView({ state, active, tick, insight, pendingMemos, companionLine, ...handlers }: TodayViewProps) {
   const activeCategory = state.activeSession ? categoryById(state, state.activeSession.categoryId) : undefined;
@@ -34,12 +33,11 @@ export function TodayView({ state, active, tick, insight, pendingMemos, companio
   const mood: CompanionMood = isRunning ? "running" : companionLine ? "talking" : "waiting";
 
   // The tick only re-runs the arithmetic; the cards themselves are never rebuilt.
-  const { total, cards } = useMemo(() => ({
-    total: totalTodayMinutes(state),
+  const { cards, dayCards } = useMemo(() => ({
     cards: state.assignments.map((id) => ({ category: categoryById(state, id), minutes: todayMinutes(state, id) })),
+    dayCards: buildDayCards(state, DECK_DAYS),
   }), [state, tick]);
-
-  const recordedCount = state.categories.filter((category) => todayMinutes(state, category.id) > 0).length;
+  const routineLabel = useMemo(() => describeRoutine(deriveRoutine(state, DECK_DAYS)), [state]);
 
   return (
     <section className={`view${active ? " active" : ""}`} id="view-today" aria-labelledby="today-title">
@@ -50,28 +48,7 @@ export function TodayView({ state, active, tick, insight, pendingMemos, companio
         onDismiss={handlers.onDismissCompanion}
         onPoke={handlers.onPokeCompanion}
       />
-      <section className="today-overview" data-state={isRunning ? "running" : "idle"}>
-        <div className="overview-heading">
-          <div>
-            <p className="eyebrow">{todayLabel()}</p>
-            <h1 id="today-title">오늘 쌓인 시간</h1>
-          </div>
-        </div>
-        <div className="total-block">
-          <p className="total-label">지금까지</p>
-          <p className="total-time">{formatMinutes(total)}</p>
-          <p className="hero-message">
-            <span className="pastel-dot" aria-hidden="true" />
-            <span>
-              {activeCategory
-                ? `${activeCategory.name} 기록 중`
-                : recordedCount
-                  ? `오늘 ${recordedCount}개 활동을 기록했어요.`
-                  : "아직 기록이 없어요. 네 가지 중 하나를 눌러 시작하세요."}
-            </span>
-          </p>
-        </div>
-      </section>
+      <RoutineDeck cards={dayCards} routineLabel={routineLabel} />
 
       <section className="section-heading">
         <div>
