@@ -50,3 +50,30 @@ export function countdown(state: AppState, category: Category, now: Date = new D
   const goal = category.goal * 60_000;
   return { remainingMs: Math.max(0, goal - played), overMs: Math.max(0, played - goal), hasGoal: true };
 }
+
+export interface GoalProgress extends GoalStanding {
+  category: Category;
+  goal: number;
+  /** Minutes still needed, spread over the days left in the goal's period (1 for daily). */
+  perDayLeft: number;
+}
+
+/** Every live activity with a goal, each measured in its own period. */
+export function goalProgress(state: AppState, daysLeftInWeek: number, now: Date = new Date()): GoalProgress[] {
+  return state.categories
+    .filter((category) => category.status !== "archived" && category.goal > 0)
+    .map((category) => {
+      const standing = goalStanding(state, category, now);
+      const remaining = Math.max(0, category.goal - standing.minutes);
+      const daysLeft = goalTypeOf(category) === "weekly" ? daysLeftInWeek : 1;
+      return { ...standing, category, goal: category.goal, perDayLeft: remaining / daysLeft };
+    });
+}
+
+export function describeGoals(progress: GoalProgress[], daysLeftInWeek: number): string {
+  if (!progress.length) return "하루 또는 한 주 단위로 시간을 정해요.";
+  const done = progress.filter((item) => item.complete).length;
+  const hasWeekly = progress.some((item) => item.periodLabel === "이번 주");
+  const weekNote = hasWeekly ? ` · 이번 주 ${daysLeftInWeek === 1 ? "마지막 날" : `${daysLeftInWeek}일 남음`}` : "";
+  return done === progress.length ? `전부 채웠어요${weekNote}` : `${done}/${progress.length} 채움${weekNote}`;
+}

@@ -1,12 +1,13 @@
 import { useMemo } from "react";
 
 import { buildDayCards, deriveRoutine, describeRoutine } from "../domain/routine.ts";
-import { describeWeek, weeklyProgress } from "../domain/week.ts";
+import { describeGoals, goalProgress } from "../domain/goal.ts";
+import { daysLeftInWeek } from "../domain/week.ts";
 import { categoryById } from "../domain/stats.ts";
 import type { AppState, Session } from "../domain/types.ts";
 import { ButtonRow } from "../components/ButtonRow.tsx";
 import { MemoInbox } from "../components/MemoInbox.tsx";
-import { WeekGoals } from "../components/WeekGoals.tsx";
+import { GoalBoard } from "../components/WeekGoals.tsx";
 import { RoutineDeck } from "../components/RoutineDeck.tsx";
 
 interface TodayViewProps {
@@ -32,10 +33,10 @@ export function TodayView({ state, active, tick, pendingMemos, companionLine, ..
   const mood = isRunning ? "running" : companionLine ? "talking" : "waiting";
 
   // The tick only re-runs the arithmetic; the cards themselves are never rebuilt.
-  const { buttons, dayCards, week } = useMemo(() => ({
+  const { buttons, dayCards, goals } = useMemo(() => ({
     buttons: state.assignments.map((id) => categoryById(state, id)),
     dayCards: buildDayCards(state, DECK_DAYS),
-    week: weeklyProgress(state),
+    goals: goalProgress(state, daysLeftInWeek()),
   }), [state, tick]);
   const routineLabel = useMemo(() => describeRoutine(deriveRoutine(state, DECK_DAYS)), [state]);
 
@@ -66,7 +67,7 @@ export function TodayView({ state, active, tick, pendingMemos, companionLine, ..
       </section>
       <ButtonRow state={state} buttons={buttons} runningId={state.activeSession?.categoryId ?? null} onPress={handlers.onPressButton} />
 
-      <WeekGoals progress={week} summary={describeWeek(week)} onEditGoals={handlers.onEditGoals} />
+      <GoalBoard progress={goals} summary={describeGoals(goals, daysLeftInWeek())} onAddGoal={handlers.onEditGoals} />
 
       <button
         className="manual-button"

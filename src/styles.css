@@ -763,6 +763,8 @@ textarea:focus-visible,
 .week-goal-ring-dot { position: relative; z-index: 1; width: 10px; height: 10px; border-radius: 50%; background: var(--category); }
 .week-goal-copy { display: grid; gap: 2px; min-width: 0; }
 .week-goal-copy strong { font-size: 0.92rem; font-weight: 750; }
+.week-goal-period { margin-left: 6px; padding: 2px 7px; border-radius: 999px; background: var(--surface-pressed); color: var(--ink-soft); font-size: 0.68rem; font-style: normal; font-weight: 650; vertical-align: 1px; }
+.week-goal.done .week-goal-period { background: color-mix(in srgb, var(--category) 18%, var(--canvas)); color: var(--ink); }
 .week-goal-copy span { color: var(--ink-soft); font-size: 0.76rem; font-variant-numeric: tabular-nums; }
 .week-goal-percent { font-size: 0.92rem; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
 .week-goal.done .week-goal-percent { color: var(--category); }

@@ -62,6 +62,8 @@ export function GoalDialog({ state, open, pendingCategoryId, onClose, onSave, on
   }, [open, choosingSlot]);
 
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
+    // The × is a cancel submit: let the native dialog close instead of saving.
+    if ((event.nativeEvent as SubmitEvent).submitter?.getAttribute("value") === "cancel") return;
     event.preventDefault();
     const clean = normalizeActivityName(name);
     if (!clean) return setError("활동 이름을 적어주세요.");
@@ -75,6 +77,7 @@ export function GoalDialog({ state, open, pendingCategoryId, onClose, onSave, on
         <div className="onboarding-step">
           <div className="dialog-header">
             <div><p className="eyebrow">버튼이 다 찼어요</p><h2 id="goal-dialog-title">{pending.name}을 어느 버튼에 올릴까요?</h2></div>
+            <button className="icon-button" type="button" aria-label="닫기" onClick={onKeepInList}>×</button>
           </div>
           <p className="dialog-copy">보드에는 버튼이 네 개예요. 내려간 활동의 기록은 그대로 남고, 언제든 다시 올릴 수 있어요.</p>
           <div className="slot-picker" role="group" aria-label="교체할 버튼">

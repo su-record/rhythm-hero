@@ -321,7 +321,7 @@ export function App() {
           }}
           onEditCategory={dialogs.openCategoryEditor}
           onArchiveCategory={archiveCategory}
-          onAddCategory={() => dialogs.openCategoryEditor(null)}
+          onAddCategory={() => setGoalDialog({ open: true, pendingId: null })}
           onRestoreSession={(id) => {
             commit((current) => actions.restoreSession(current, id));
             showToast("기록을 복구했어요.");
