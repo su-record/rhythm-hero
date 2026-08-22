@@ -85,6 +85,18 @@ function getPendingMemoSessionIds(currentState) {
 /* Rhythm Hero prototype. Local storage is the offline source of truth; a local beta API mirrors it when available. */
 const STORAGE_KEY = "habit-toy-state-v1";
 const CLIENT_ID_KEY = "habit-toy-client-id-v1";
+const DEFAULT_CATEGORY_COLORS = Object.freeze({
+  move: "#FF5D52",
+  read: "#20D68A",
+  music: "#5B70FF",
+  project: "#FFD43B",
+});
+const LEGACY_DEFAULT_CATEGORY_COLORS = Object.freeze({
+  move: "#E7A08E",
+  read: "#8EB5E8",
+  music: "#B49ACC",
+  project: "#79BFAF",
+});
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
@@ -112,10 +124,10 @@ function isoAt(daysAgo, hour, minute, durationMinutes) {
 
 function createDefaultState() {
   const categories = [
-    { id: "move", name: "운동", color: "#E7A08E", goal: 60, status: "active" },
-    { id: "read", name: "독서", color: "#8EB5E8", goal: 60, status: "active" },
-    { id: "music", name: "음악", color: "#B49ACC", goal: 45, status: "active" },
-    { id: "project", name: "프로젝트", color: "#79BFAF", goal: 90, status: "active" },
+    { id: "move", name: "운동", color: DEFAULT_CATEGORY_COLORS.move, goal: 60, status: "active" },
+    { id: "read", name: "독서", color: DEFAULT_CATEGORY_COLORS.read, goal: 60, status: "active" },
+    { id: "music", name: "음악", color: DEFAULT_CATEGORY_COLORS.music, goal: 45, status: "active" },
+    { id: "project", name: "프로젝트", color: DEFAULT_CATEGORY_COLORS.project, goal: 90, status: "active" },
   ];
   const seed = [
     [0, "move", 7, 15, 35], [0, "read", 21, 5, 42], [0, "project", 14, 20, 39],
@@ -137,7 +149,11 @@ function createDefaultState() {
 
 let hadPersistedState = false;
 function normalizeState(parsed) {
-  parsed.categories.forEach((category) => { if (!category.status) category.status = "active"; });
+  parsed.categories.forEach((category) => {
+    if (!category.status) category.status = "active";
+    const legacyColor = LEGACY_DEFAULT_CATEGORY_COLORS[category.id];
+    if (legacyColor && String(category.color).toUpperCase() === legacyColor) category.color = DEFAULT_CATEGORY_COLORS[category.id];
+  });
   parsed.sessions ||= [];
   parsed.historyRange ||= 7;
   parsed.reflectionRange = parsed.reflectionRange === 30 ? 30 : 7;
@@ -260,7 +276,20 @@ function dayKey(value) { const d = new Date(value); return `${d.getFullYear()}-$
 function localDateInput(value) { const d = new Date(value); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; }
 function localTimeInput(value) { const d = new Date(value); return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`; }
 function escapeHtml(value) { return String(value).replace(/[&<>'"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[character]); }
-function safeColor(value) { return /^#[0-9a-f]{6}$/i.test(String(value)) ? String(value) : "#8EB5E8"; }
+function safeColor(value) { return /^#[0-9a-f]{6}$/i.test(String(value)) ? String(value) : DEFAULT_CATEGORY_COLORS.music; }
+
+function activityIconMarkup(category, size = "") {
+  const icon = ["move", "read", "music", "project"].includes(category?.id) ? category.id : "generic";
+  const color = safeColor(category?.color);
+  const artwork = {
+    move: `<path class="activity-icon-fill" d="M11.5 30.2c4.8-.2 7.6-1.9 9.7-5.8l2.3-4.2 4.5 5.3c2.7 3.2 5.8 4.7 9.7 5.4l2.8.5v5.2H12.7c-2.2 0-3.7-1.5-3.7-3.4 0-1.6.9-2.8 2.5-3Z"/><path d="M12 30.1c4.4-.3 7.2-2 9.2-5.7l2.3-4.2 4.5 5.3c2.7 3.2 5.8 4.7 9.7 5.4l2.8.5v5.2H12.7c-2.2 0-3.7-1.5-3.7-3.4 0-1.6 1.1-2.9 3-3.1Z"/><path d="M20.4 26.1l4 2.3m-6.5.1 3.9 2.2M12 36.6h28.5"/>`,
+    read: `<path class="activity-icon-fill" d="M7.8 12.6c6.6-.9 11.8.4 16.2 4.1 4.4-3.7 9.6-5 16.2-4.1v24.1c-6.6-.9-11.8.4-16.2 4.1-4.4-3.7-9.6-5-16.2-4.1V12.6Z"/><path d="M7.8 12.6c6.6-.9 11.8.4 16.2 4.1 4.4-3.7 9.6-5 16.2-4.1v24.1c-6.6-.9-11.8.4-16.2 4.1-4.4-3.7-9.6-5-16.2-4.1V12.6Z"/><path d="M24 16.7v24.1M12.2 18.8c3.2-.1 5.9.6 8.2 2.1m-8.2 4c3.2-.1 5.9.6 8.2 2.1m15.4-8.2c-3.2-.1-5.9.6-8.2 2.1m8.2 4c-3.2-.1-5.9.6-8.2 2.1"/>`,
+    music: `<path class="activity-icon-fill" d="M21 13.8 38.5 10v21.1a6.3 6.3 0 1 1-3.7-5.7V16.8L24.7 19v16.1a6.3 6.3 0 1 1-3.7-5.7V13.8Z"/><path d="M21 13.8 38.5 10v21.1a6.3 6.3 0 1 1-3.7-5.7V16.8L24.7 19v16.1a6.3 6.3 0 1 1-3.7-5.7V13.8Z"/><path d="M24.7 19 38.5 16"/>`,
+    project: `<path class="activity-icon-fill" d="M13 10.8h22v29H13z"/><path d="M13 10.8h22v29H13z"/><path d="M20 9h8v5.2h-8zM18 22l2.2 2.2 4.2-4.4M18 31l2.2 2.2 4.2-4.4M27.5 22h3.7m-3.7 9h3.7"/><path class="activity-icon-paper" d="m33.5 35.5 6.4-6.4 2 2-6.4 6.4-3 .9z"/>`,
+    generic: `<rect class="activity-icon-fill" x="9" y="9" width="12" height="12" rx="3"/><rect x="27" y="9" width="12" height="12" rx="3"/><rect x="9" y="27" width="12" height="12" rx="3"/><path d="m33 26 6 6-6 6-6-6 6-6Z"/>`,
+  }[icon];
+  return `<svg class="activity-icon ${escapeHtml(size)}" style="--icon-color:${color}" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><g fill="none" stroke="#111111" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${artwork}</g></svg>`;
+}
 function sessionsForDay(day) {
   return state.sessions
     .filter((session) => session.status === "completed")
@@ -414,19 +443,20 @@ function renderToday() {
   const total = state.categories.reduce((sum, category) => sum + todayMinutes(category.id), 0);
   $("#today-total").textContent = formatMinutes(total);
   const activeCategoryCount = state.categories.filter((category) => todayMinutes(category.id) > 0).length;
-  $("#today-meta").textContent = activeCategory ? `${activeCategory.name} 시간을 함께 쌓고 있어요.` : activeCategoryCount ? `${activeCategoryCount}개 영역에서 시간이 쌓였어요.` : "아직 기록을 기다리고 있어요.";
+  $("#today-meta").textContent = activeCategory ? `${activeCategory.name} 기록 중` : activeCategoryCount ? `오늘 ${activeCategoryCount}개 활동을 기록했어요.` : "아직 기록이 없어요. 네 가지 중 하나를 눌러 시작하세요.";
   const grid = $("#category-grid");
   grid.innerHTML = state.assignments.map((id, index) => {
     const category = categoryById(id);
     const minutes = todayMinutes(id);
     const percentage = category.goal ? Math.min((minutes / category.goal) * 100, 100) : Math.min(minutes, 100);
     const running = state.activeSession?.categoryId === id;
+    const goalComplete = Boolean(category.goal && minutes >= category.goal);
     const categoryColor = safeColor(category.color);
-    return `<button class="category-card ${running ? "running" : ""}" data-button-index="${index + 1}" style="--category:${categoryColor};--category-soft:${categoryColor}33" type="button" aria-pressed="${running}">
-      <span class="card-top"><span class="button-index">${index + 1}</span><span class="card-status">${running ? "기록 중" : "시작"}</span></span>
+    return `<button class="category-card ${running ? "running" : ""} ${goalComplete ? "goal-complete" : ""}" data-button-index="${index + 1}" style="--category:${categoryColor};--category-soft:${categoryColor}14" type="button" aria-pressed="${running}" aria-label="${escapeHtml(category.name)}, 오늘 ${escapeHtml(formatMinutes(minutes))}, ${running ? "기록 종료" : "기록 시작"}">
+      <span class="card-top">${activityIconMarkup(category, "activity-icon-card")}<span class="button-index">${index + 1}</span></span>
       <span class="category-content"><strong class="category-name">${escapeHtml(category.name)}</strong><span class="category-time">${formatMinutes(minutes)}</span></span>
       <span class="progress-track"><span class="progress-fill" style="width:${percentage}%"></span></span>
-      <span class="category-goal">${category.goal ? `오늘 목표 ${escapeHtml(category.goal)}분` : "목표 없이 기록 중"}</span>
+      <span class="category-card-footer"><span class="category-goal">${category.goal ? `오늘 목표 ${escapeHtml(category.goal)}분` : "목표 없이 기록"}</span><span class="card-status">${running ? "기록 중" : goalComplete ? "완료 ✓" : "눌러서 시작"}</span></span>
     </button>`;
   }).join("");
   grid.querySelectorAll("[data-button-index]").forEach((button) => button.addEventListener("click", () => pressButton(Number(button.dataset.buttonIndex))));
@@ -435,6 +465,12 @@ function renderToday() {
   now.dataset.sessionState = isRunning ? "running" : "idle";
   if (state.activeSession) {
     now.classList.remove("hidden");
+    const nowIcon = $("#now-icon");
+    if (nowIcon.dataset.category !== activeCategory.id || nowIcon.dataset.color !== safeColor(activeCategory.color)) {
+      nowIcon.innerHTML = activityIconMarkup(activeCategory, "activity-icon-now");
+      nowIcon.dataset.category = activeCategory.id;
+      nowIcon.dataset.color = safeColor(activeCategory.color);
+    }
     $("#now-category").textContent = activeCategory.name;
     $("#now-duration").textContent = formatClock(durationMs(state.activeSession));
     $("#stop-session").setAttribute("aria-label", `${activeCategory.name} 기록 종료`);
@@ -451,7 +487,8 @@ function renderHistory() {
   const rangeLabel = `최근 ${state.historyRange}일`;
   const heatmapMinWidth = 64 + state.historyRange * 32;
   $("#activity-map-scroll").dataset.range = String(state.historyRange);
-  $("#history-title").textContent = rangeLabel;
+  $("#history-title").textContent = "기록";
+  $("#history-period-copy").textContent = rangeLabel;
   $$(".segmented button[data-range]").forEach((button) => {
     const selected = Number(button.dataset.range) === state.historyRange;
     button.classList.toggle("selected", selected);
@@ -465,14 +502,14 @@ function renderHistory() {
       const level = minutes === 0 ? "" : ratio < .3 ? "l1" : ratio < .65 ? "l2" : ratio < 1 ? "l3" : "l4";
       const today = sameLocalDay(day) ? "today" : "";
       const label = `${category.name} ${new Intl.DateTimeFormat("ko-KR", { month: "numeric", day: "numeric" }).format(day)} ${minutes ? formatMinutes(minutes) : "기록 없음"}`;
-      return `<span class="heat-cell ${level} ${today}" style="background-color:${minutes ? safeColor(category.color) : ""}" title="${escapeHtml(label)}" role="img" aria-label="${escapeHtml(label)}"></span>`;
+      return `<span class="heat-cell ${level} ${today}" style="--category:${safeColor(category.color)}" title="${escapeHtml(label)}" role="img" aria-label="${escapeHtml(label)}"></span>`;
     }).join("");
-    return `<div class="heatmap-row" style="--days:${state.historyRange};min-width:${heatmapMinWidth}px"><span class="heatmap-name">${escapeHtml(category.name)}</span>${cells}</div>`;
+    return `<div class="heatmap-row" style="--days:${state.historyRange};min-width:${heatmapMinWidth}px"><span class="heatmap-name" title="${escapeHtml(category.name)}">${escapeHtml(category.name)}</span>${cells}</div>`;
   }).join("");
   const periodSessions = days.flatMap((day) => sessionsForDay(day));
   const total = state.categories.reduce((sum, category) => sum + minutesFor(category.id, periodSessions), 0);
   $("#week-total").textContent = formatMinutes(total);
-  $("#history-period-label").textContent = state.historyRange === 7 ? "이번 주 누적" : "최근 30일 누적";
+  $("#history-period-label").textContent = state.historyRange === 7 ? "최근 7일 누적" : "최근 30일 누적";
   $("#active-days").textContent = `${days.filter((day) => sessionsForDay(day).length > 0).length}일`;
   const most = state.categories.map((category) => ({ category, minutes: minutesFor(category.id, periodSessions) })).sort((a, b) => b.minutes - a.minutes)[0];
   $("#week-summary").textContent = most.minutes ? `${most.category.name}에 가장 많은 시간을 썼어요.` : "아직 기록이 없어요.";
@@ -481,7 +518,7 @@ function renderHistory() {
     const category = categoryById(session.categoryId);
     const from = new Intl.DateTimeFormat("ko-KR", { hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date(session.startedAt));
     const memoLabel = session.memo ? " · 메모 있음" : session.memoCaptureState === "pending" ? " · 한 줄 기다림" : "";
-    return `<button class="session-item ${session.memoCaptureState === "pending" ? "memo-pending" : ""}" data-session-id="${escapeHtml(session.id)}" style="--category:${safeColor(category.color)}" type="button"><span class="session-color"></span><span class="session-info"><strong>${escapeHtml(category.name)}</strong><span>${from} 시작 · ${session.source === "device" ? "버튼 기록" : "앱 기록"}${memoLabel}</span></span>${session.memoCaptureState === "pending" ? '<span class="session-note-badge">메모 대기</span>' : ""}<span class="session-duration">${formatMinutes(durationMs(session) / 60_000)}</span></button>`;
+    return `<button class="session-item ${session.memoCaptureState === "pending" ? "memo-pending" : ""}" data-session-id="${escapeHtml(session.id)}" style="--category:${safeColor(category.color)}" type="button">${activityIconMarkup(category, "activity-icon-list")}<span class="session-info"><strong>${escapeHtml(category.name)}</strong><span>${from} 시작 · ${session.source === "device" ? "버튼 기록" : "앱 기록"}${memoLabel}</span></span>${session.memoCaptureState === "pending" ? '<span class="session-note-badge">메모 대기</span>' : ""}<span class="session-duration">${formatMinutes(durationMs(session) / 60_000)}</span></button>`;
   }).join("") || `<p class="page-intro">아직 완료된 기록이 없어요.</p>`;
   $$("[data-session-id]").forEach((item) => item.addEventListener("click", () => openSessionDialog(item.dataset.sessionId)));
   renderCategoryLibrary();
@@ -514,12 +551,12 @@ function renderCategoryLibrary() {
     if (left.status !== right.status) return left.status === "archived" ? 1 : -1;
     return categoryStats(right.id).totalMinutes - categoryStats(left.id).totalMinutes;
   });
-  $("#category-library-copy").textContent = `${state.categories.length}개의 Category · Active 4에서 내려도 기록은 유지됩니다.`;
+  $("#category-library-copy").textContent = `${state.categories.length}개의 활동 · 나의 네 가지에서 내려도 기록은 유지됩니다.`;
   $("#category-library").innerHTML = ordered.map((category) => {
     const stats = categoryStats(category.id);
     const slot = state.assignments.indexOf(category.id);
-    const status = slot !== -1 ? `Button ${slot + 1} · Active 4` : category.status === "archived" ? "보관 중" : stats.lastSession ? `마지막 기록 ${new Intl.DateTimeFormat("ko-KR", { month: "short", day: "numeric" }).format(new Date(stats.lastSession.startedAt))}` : "아직 기록 없음";
-    return `<button class="category-library-item" data-category-detail="${escapeHtml(category.id)}" style="--category:${safeColor(category.color)}" type="button"><span class="category-library-color"></span><span class="category-library-info"><strong>${escapeHtml(category.name)}</strong><span>${escapeHtml(status)}</span></span><span class="category-library-total">${formatMinutes(stats.totalMinutes)}</span><span class="category-library-arrow" aria-hidden="true">›</span></button>`;
+    const status = slot !== -1 ? `${slot + 1}번 버튼 · 나의 네 가지` : category.status === "archived" ? "보관 중" : stats.lastSession ? `마지막 기록 ${new Intl.DateTimeFormat("ko-KR", { month: "short", day: "numeric" }).format(new Date(stats.lastSession.startedAt))}` : "아직 기록 없음";
+    return `<button class="category-library-item" data-category-detail="${escapeHtml(category.id)}" style="--category:${safeColor(category.color)}" type="button">${activityIconMarkup(category, "activity-icon-list")}<span class="category-library-info"><strong>${escapeHtml(category.name)}</strong><span>${escapeHtml(status)}</span></span><span class="category-library-total">${formatMinutes(stats.totalMinutes)}</span><span class="category-library-arrow" aria-hidden="true">›</span></button>`;
   }).join("");
   $$("[data-category-detail]").forEach((button) => button.addEventListener("click", () => openCategoryDetail(button.dataset.categoryDetail)));
 }
@@ -540,7 +577,7 @@ function openCategoryDetail(id) {
   const slot = state.assignments.indexOf(id);
   $("#category-detail-title").textContent = category.name;
   $("#category-detail-color").style.backgroundColor = safeColor(category.color);
-  $("#category-detail-status").textContent = slot !== -1 ? `Button ${slot + 1} · Active 4에서 사용 중` : category.status === "archived" ? "보관 중인 Category" : "전체 Category 기록";
+  $("#category-detail-status").textContent = slot !== -1 ? `${slot + 1}번 버튼 · 나의 네 가지에서 사용 중` : category.status === "archived" ? "보관 중인 활동" : "전체 활동 기록";
   $("#category-detail-meta").textContent = stats.lastSession ? `마지막 기록 ${new Intl.DateTimeFormat("ko-KR", { year: "numeric", month: "long", day: "numeric" }).format(new Date(stats.lastSession.startedAt))}` : "첫 번째 시간을 기록하면 이곳에 쌓이기 시작합니다.";
   $("#category-detail-total").textContent = formatMinutes(stats.totalMinutes);
   $("#category-detail-days").textContent = `${stats.activeDays}일`;
@@ -551,9 +588,9 @@ function openCategoryDetail(id) {
     const ratio = category.goal ? minutes / category.goal : minutes / 60;
     const level = minutes === 0 ? "" : ratio < .3 ? "l1" : ratio < .65 ? "l2" : ratio < 1 ? "l3" : "l4";
     const label = `${category.name} ${new Intl.DateTimeFormat("ko-KR", { month: "numeric", day: "numeric" }).format(day)} ${minutes ? formatMinutes(minutes) : "기록 없음"}`;
-    return `<span class="detail-heat-cell ${level}" style="${minutes ? `background-color:${safeColor(category.color)}` : ""}" title="${escapeHtml(label)}" role="img" aria-label="${escapeHtml(label)}"></span>`;
+    return `<span class="detail-heat-cell ${level}" style="--category:${safeColor(category.color)}" title="${escapeHtml(label)}" role="img" aria-label="${escapeHtml(label)}"></span>`;
   }).join("");
-  $("#category-detail-session-list").innerHTML = stats.sessions.slice(0, 5).map((session) => `<div class="detail-session-row"><span><strong>${new Intl.DateTimeFormat("ko-KR", { month: "short", day: "numeric" }).format(new Date(session.startedAt))}</strong><small>${new Intl.DateTimeFormat("ko-KR", { hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date(session.startedAt))} 시작${session.memo ? ` · ${escapeHtml(session.memo)}` : ""}</small></span><b>${formatMinutes(durationMs(session) / 60_000)}</b></div>`).join("") || `<p class="detail-empty">아직 완료된 Session이 없어요.</p>`;
+  $("#category-detail-session-list").innerHTML = stats.sessions.slice(0, 5).map((session) => `<div class="detail-session-row"><span><strong>${new Intl.DateTimeFormat("ko-KR", { month: "short", day: "numeric" }).format(new Date(session.startedAt))}</strong><small>${new Intl.DateTimeFormat("ko-KR", { hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date(session.startedAt))} 시작${session.memo ? ` · ${escapeHtml(session.memo)}` : ""}</small></span><b>${formatMinutes(durationMs(session) / 60_000)}</b></div>`).join("") || `<p class="detail-empty">아직 완료된 기록이 없어요.</p>`;
   const controls = $("#category-detail-active4-controls");
   controls.classList.toggle("hidden", slot !== -1);
   if (slot === -1) {
@@ -564,14 +601,14 @@ function openCategoryDetail(id) {
 }
 
 function addDetailCategoryToActive4() {
-  if (state.activeSession) return showToast("진행 중인 기록을 종료한 뒤 Active 4를 변경해주세요.");
+  if (state.activeSession) return showToast("진행 중인 기록을 종료한 뒤 나의 네 가지를 변경해주세요.");
   const category = categoryById(categoryDetailId);
   if (!category || state.assignments.includes(category.id)) return;
   const slot = Number($("#category-detail-target-slot").value || 0);
   const previous = categoryById(state.assignments[slot]);
   state = applyActiveAssignments(state, placeCategoryInSlot(state.assignments, slot, category.id));
   saveState(); render(); $("#category-detail-dialog").close();
-  showToast(`${category.name}을 Button ${slot + 1}에 연결했어요. ${previous.name} 기록은 유지됩니다.`);
+  showToast(`${category.name}을 ${slot + 1}번 버튼에 연결했어요. ${previous.name} 기록은 유지됩니다.`);
 }
 
 function reflectionPeriodBounds(range = state.reflectionRange, offsetPeriods = 0) {
@@ -651,7 +688,7 @@ function getReflectionReport() {
       key: "comparison",
       type: "최근 대비",
       message: "선택한 기간에는 완료된 기록이 없어 직전 기간과의 변화를 계산하지 않았어요.",
-      description: "첫 완료 Session이 생기면 같은 길이의 직전 기간과 비교합니다.",
+      description: "첫 완료 기록이 생기면 같은 길이의 직전 기간과 비교합니다.",
       evidence: `${periodEvidence} · 현재 0분 · 이전 ${formatReflectionMinutes(previous.totalMinutes)}`,
       evidenceItems: [
         { label: "현재", value: "0분" },
@@ -670,7 +707,7 @@ function getReflectionReport() {
       evidenceItems: [
         { label: "현재", value: formatReflectionMinutes(current.totalMinutes) },
         { label: "이전", value: "0분" },
-        { label: "고유 Session", value: `${current.sessionCount}개` },
+        { label: "기록 수", value: `${current.sessionCount}개` },
       ],
       insufficient: true,
     });
@@ -699,12 +736,12 @@ function getReflectionReport() {
     const share = Math.round((leading.minutes / current.totalMinutes) * 100);
     facts.push({
       key: "top-share",
-      type: "Category 비율",
+      type: "활동 비율",
       message: `${leading.category.name}에 ${formatReflectionMinutes(leading.minutes)}이 쌓여 전체의 ${share}%를 차지했어요.`,
-      description: "선택한 기간의 총 기록 시간에서 Category가 차지한 비율입니다.",
-      evidence: `${periodEvidence} · ${leading.category.name} ${formatReflectionMinutes(leading.minutes)} / 전체 ${formatReflectionMinutes(current.totalMinutes)} · Session ${leading.sessionCount}개`,
+      description: "선택한 기간의 총 기록 시간에서 이 활동이 차지한 비율입니다.",
+      evidence: `${periodEvidence} · ${leading.category.name} ${formatReflectionMinutes(leading.minutes)} / 전체 ${formatReflectionMinutes(current.totalMinutes)} · 기록 ${leading.sessionCount}개`,
       evidenceItems: [
-        { label: "Category", value: leading.category.name },
+        { label: "활동", value: leading.category.name },
         { label: "시간", value: formatReflectionMinutes(leading.minutes) },
         { label: "비율", value: `${share}%` },
       ],
@@ -712,11 +749,11 @@ function getReflectionReport() {
   } else {
     facts.push({
       key: "top-share",
-      type: "Category 비율",
-      message: "Category 분포를 계산하려면 완료된 기록이 필요해요.",
-      description: "첫 기록이 끝나면 Category별 시간과 비율을 나눠 보여드립니다.",
-      evidence: `${periodEvidence} · 완료 Session 0개`,
-      evidenceItems: [{ label: "완료 Session", value: "0개" }, { label: "기간", value: `${range}일` }],
+      type: "활동 비율",
+      message: "활동별 분포를 계산하려면 완료된 기록이 필요해요.",
+      description: "첫 기록이 끝나면 활동별 시간과 비율을 나눠 보여드립니다.",
+      evidence: `${periodEvidence} · 완료 기록 0개`,
+      evidenceItems: [{ label: "완료 기록", value: "0개" }, { label: "기간", value: `${range}일` }],
       insufficient: true,
     });
   }
@@ -738,11 +775,11 @@ function getReflectionReport() {
     facts.push({
       key: "rhythm",
       type: "시작 리듬",
-      message: `시작 시간의 리듬을 보려면 완료 Session이 ${needed}개 더 필요해요.`,
-      description: "완료 Session 3개부터 시작 시간대의 분포를 관찰합니다.",
-      evidence: `${periodEvidence} · 기간 안에서 시작한 Session ${current.startedSessions.length}개 · ${bandEvidence}`,
+      message: `시작 시간의 흐름을 보려면 완료 기록이 ${needed}개 더 필요해요.`,
+      description: "완료 기록 3개부터 시작 시간대의 분포를 관찰합니다.",
+      evidence: `${periodEvidence} · 기간 안에서 시작한 기록 ${current.startedSessions.length}개 · ${bandEvidence}`,
       evidenceItems: [
-        { label: "시작 Session", value: `${current.startedSessions.length}개` },
+        { label: "시작 기록", value: `${current.startedSessions.length}개` },
         { label: "필요한 기록", value: `${needed}개` },
         { label: "기준", value: "완료 3개" },
       ],
@@ -752,13 +789,13 @@ function getReflectionReport() {
     const maxCount = Math.max(...timeBands.map((item) => item.count));
     const leaders = timeBands.filter((item) => item.count === maxCount);
     const message = leaders.length === 1
-      ? `${leaders[0].label}에 시작한 Session이 ${maxCount}개로 가장 많았어요.`
-      : `Session 시작이 ${leaders.map((item) => item.label).join("·")} 시간대에 고르게 나타났어요.`;
+      ? `${leaders[0].label}에 시작한 기록이 ${maxCount}개로 가장 많았어요.`
+      : `기록 시작이 ${leaders.map((item) => item.label).join("·")} 시간대에 고르게 나타났어요.`;
     facts.push({
       key: "rhythm",
       type: "시작 리듬",
       message,
-      description: "완료 Session의 시작 시각을 네 시간대로 나눠 관찰했습니다.",
+      description: "완료 기록의 시작 시각을 네 시간대로 나눠 관찰했습니다.",
       evidence: `${periodEvidence} · ${bandEvidence}`,
       evidenceItems: timeBands.map((item) => ({ label: item.label, value: `${item.count}개` })),
     });
@@ -790,8 +827,8 @@ function renderReflections() {
   const distribution = current.categories.filter((item) => item.minutes > 0);
   $("#reflection-distribution").innerHTML = distribution.length ? distribution.map((item) => {
     const share = Math.round((item.minutes / current.totalMinutes) * 100);
-    return `<div class="reflection-distribution-row" style="--category:${safeColor(item.category.color)};--share:${share}%"><div class="reflection-distribution-heading"><strong>${escapeHtml(item.category.name)}</strong><span>${formatReflectionMinutes(item.minutes)} · ${share}%</span></div><span class="reflection-distribution-track" aria-hidden="true"><span class="reflection-distribution-fill"></span></span></div>`;
-  }).join("") : `<p class="reflection-empty">이 기간에는 완료된 기록이 없어요. 첫 Session이 끝나면 분포가 나타납니다.</p>`;
+    return `<div class="reflection-distribution-row" style="--category:${safeColor(item.category.color)};--share:${share}%"><div class="reflection-distribution-heading"><span class="reflection-distribution-identity">${activityIconMarkup(item.category, "activity-icon-small")}<strong>${escapeHtml(item.category.name)}</strong></span><span>${formatReflectionMinutes(item.minutes)} · ${share}%</span></div><span class="reflection-distribution-track" aria-hidden="true"><span class="reflection-distribution-fill"></span></span></div>`;
+  }).join("") : `<p class="reflection-empty">이 기간에는 완료된 기록이 없어요. 첫 기록이 끝나면 분포가 나타납니다.</p>`;
 
   const ai = state.aiReflection;
   const snapshot = ai?.factSnapshot;
@@ -801,20 +838,20 @@ function renderReflections() {
   $("#reflection-list").innerHTML = aiCard + factCards;
   const aiButton = $("#refresh-ai");
   aiButton.disabled = current.sessionCount === 0;
-  aiButton.textContent = current.sessionCount === 0 ? "기록이 더 필요해요" : "AI 리플렉션 만들기";
+  aiButton.textContent = current.sessionCount === 0 ? "기록이 더 필요해요" : "AI로 새로 만들기";
 }
 
 function renderSettings() {
   $("#assignment-list").innerHTML = state.assignments.map((id, index) => {
     const category = categoryById(id);
     const options = selectableCategories().map((option) => `<option value="${escapeHtml(option.id)}" ${option.id === id ? "selected" : ""}>${escapeHtml(option.name)}</option>`).join("");
-    return `<div class="assignment-row" style="--category:${safeColor(category.color)}"><b>${index + 1}</b><select data-assignment="${index}" aria-label="${index + 1}번 버튼 Category">${options}</select></div>`;
+    return `<div class="assignment-row" style="--category:${safeColor(category.color)}"><span class="assignment-leading"><b>${index + 1}</b>${activityIconMarkup(category, "activity-icon-list")}<span>${escapeHtml(category.name)}</span></span><select data-assignment="${index}" aria-label="${index + 1}번 버튼 활동">${options}</select></div>`;
   }).join("");
   $$("[data-assignment]").forEach((select) => select.addEventListener("change", () => {
     const index = Number(select.dataset.assignment); const next = select.value;
     if (state.activeSession) {
       select.value = state.assignments[index];
-      showToast("진행 중인 기록을 종료한 뒤 Active 4를 변경해주세요.");
+      showToast("진행 중인 기록을 종료한 뒤 나의 네 가지를 변경해주세요.");
       return;
     }
     const duplicateIndex = state.assignments.indexOf(next);
@@ -822,13 +859,13 @@ function renderSettings() {
     else state.assignments[index] = next;
     saveState(); render(); showToast("버튼 배치를 저장했어요.");
   }));
-  $("#goal-list").innerHTML = state.categories.map((category) => `<div class="goal-row"><label for="goal-${escapeHtml(category.id)}">${escapeHtml(category.name)}</label><input id="goal-${escapeHtml(category.id)}" data-goal="${escapeHtml(category.id)}" type="number" inputmode="numeric" min="0" max="720" value="${escapeHtml(category.goal || 0)}"/><span>분</span></div>`).join("");
+  $("#goal-list").innerHTML = state.categories.map((category) => `<div class="goal-row" style="--category:${safeColor(category.color)}"><label for="goal-${escapeHtml(category.id)}">${activityIconMarkup(category, "activity-icon-list")}<span>${escapeHtml(category.name)}</span></label><span class="goal-control"><input id="goal-${escapeHtml(category.id)}" data-goal="${escapeHtml(category.id)}" type="number" inputmode="numeric" min="0" max="720" value="${escapeHtml(category.goal || 0)}"/><span>분</span></span></div>`).join("");
   $$("[data-goal]").forEach((input) => input.addEventListener("change", () => { const category = categoryById(input.dataset.goal); category.goal = Math.max(0, Math.min(720, Number(input.value) || 0)); saveState(); render(); showToast(`${category.name} 목표를 저장했어요.`); }));
   $("#category-manager").innerHTML = state.categories.map((category) => {
     const recordCount = allCompleted().filter((session) => session.categoryId === category.id).length;
     const assigned = state.assignments.includes(category.id);
     const archived = category.status === "archived";
-    return `<div class="category-manager-row ${archived ? "archived" : ""}" style="--category:${safeColor(category.color)}"><span class="category-color"></span><button class="category-manager-edit" data-edit-category="${escapeHtml(category.id)}" type="button" aria-label="${escapeHtml(category.name)} Category 이름 편집"><span class="category-manager-info"><strong>${escapeHtml(category.name)}</strong><span>${archived ? "보관됨" : assigned ? "Active 4에 연결됨" : `기록 ${recordCount}개`}</span></span><span class="category-manager-edit-icon" aria-hidden="true">✎</span></button><button class="button secondary" data-archive-category="${escapeHtml(category.id)}" type="button">${archived ? "복원" : "보관"}</button></div>`;
+    return `<div class="category-manager-row ${archived ? "archived" : ""}" style="--category:${safeColor(category.color)}">${activityIconMarkup(category, "activity-icon-list")}<button class="category-manager-edit" data-edit-category="${escapeHtml(category.id)}" type="button" aria-label="${escapeHtml(category.name)} 활동 이름 편집"><span class="category-manager-info"><strong>${escapeHtml(category.name)}</strong><span>${archived ? "보관됨" : assigned ? "나의 네 가지에 연결됨" : `기록 ${recordCount}개`}</span></span><span class="category-manager-edit-icon" aria-hidden="true">›</span></button><button class="button secondary" data-archive-category="${escapeHtml(category.id)}" type="button">${archived ? "복원" : "보관"}</button></div>`;
   }).join("");
   $$('[data-edit-category]').forEach((button) => button.addEventListener("click", () => openCategoryEditor(button.dataset.editCategory)));
   $$("[data-archive-category]").forEach((button) => button.addEventListener("click", () => toggleArchiveCategory(button.dataset.archiveCategory)));
@@ -836,7 +873,7 @@ function renderSettings() {
   $("#deleted-section").hidden = deleted.length === 0;
   $("#deleted-session-list").innerHTML = deleted.map((session) => {
     const category = categoryById(session.categoryId);
-    return `<div class="category-manager-row" style="--category:${safeColor(category.color)}"><span class="category-color"></span><div class="category-manager-info"><strong>${escapeHtml(category.name)} · ${formatMinutes(durationMs(session) / 60_000)}</strong><span>${localDateInput(session.startedAt)}에 삭제됨</span></div><button class="button secondary" data-restore-session="${escapeHtml(session.id)}" type="button">복구</button></div>`;
+    return `<div class="category-manager-row" style="--category:${safeColor(category.color)}">${activityIconMarkup(category, "activity-icon-list")}<div class="category-manager-info"><strong>${escapeHtml(category.name)} · ${formatMinutes(durationMs(session) / 60_000)}</strong><span>${localDateInput(session.startedAt)}에 삭제됨</span></div><button class="button secondary" data-restore-session="${escapeHtml(session.id)}" type="button">복구</button></div>`;
   }).join("");
   $$("[data-restore-session]").forEach((button) => button.addEventListener("click", () => restoreSession(button.dataset.restoreSession)));
 }
@@ -847,7 +884,7 @@ function renderActive4Editor() {
   const options = state.categories.map((category) => `<option value="${escapeHtml(category.id)}">${escapeHtml(category.name)}${category.status === "archived" ? " · 보관 중" : ""}</option>`).join("");
   $("#active4-editor-list").innerHTML = active4Draft.map((id, index) => {
     const category = categoryById(id);
-    return `<label class="active4-editor-row" style="--category:${safeColor(category.color)}"><span class="active4-slot">${index + 1}</span><span class="active4-row-copy"><strong>Button ${index + 1}</strong><span>현재 ${escapeHtml(category.name)}</span></span><select data-active4-slot="${index}" aria-label="Button ${index + 1} Category">${options}</select></label>`;
+    return `<label class="active4-editor-row" style="--category:${safeColor(category.color)}"><span class="active4-slot">${index + 1}</span>${activityIconMarkup(category, "activity-icon-list")}<span class="active4-row-copy"><strong>${index + 1}번 버튼</strong><span>현재 ${escapeHtml(category.name)}</span></span><select data-active4-slot="${index}" aria-label="${index + 1}번 버튼 활동">${options}</select></label>`;
   }).join("");
   $$('[data-active4-slot]').forEach((select) => {
     const index = Number(select.dataset.active4Slot);
@@ -861,7 +898,7 @@ function renderActive4Editor() {
 }
 
 function openActive4Editor() {
-  if (state.activeSession) return showToast("진행 중인 기록을 종료한 뒤 Active 4를 편집해주세요.");
+  if (state.activeSession) return showToast("진행 중인 기록을 종료한 뒤 나의 네 가지를 편집해주세요.");
   active4Draft = [...state.assignments];
   renderActive4Editor();
   $("#active4-dialog").showModal();
@@ -871,7 +908,7 @@ function saveActive4Editor() {
   if (state.activeSession) return showToast("진행 중인 기록을 먼저 종료해주세요.");
   state = applyActiveAssignments(state, active4Draft);
   saveState(); render(); $("#active4-dialog").close();
-  showToast("Active 4를 변경했어요. 이전 기록은 그대로 유지됩니다.");
+  showToast("나의 네 가지를 변경했어요. 이전 기록은 그대로 유지됩니다.");
 }
 
 function renderDeviceStatus() {
@@ -986,7 +1023,7 @@ function restoreSession(id) {
 function toggleArchiveCategory(id) {
   const category = categoryById(id);
   if (!category) return;
-  if (category.status !== "archived" && state.assignments.includes(id)) return showToast("Active 4에서 먼저 다른 Category로 바꿔주세요.");
+  if (category.status !== "archived" && state.assignments.includes(id)) return showToast("나의 네 가지에서 먼저 다른 활동으로 바꿔주세요.");
   category.status = category.status === "archived" ? "active" : "archived";
   saveState(); render(); showToast(`${category.name}을 ${category.status === "archived" ? "보관" : "복원"}했어요.`);
 }
@@ -1002,13 +1039,13 @@ function setCategoryNameError(message = "") {
 
 function openCategoryEditor(id = null) {
   const category = id ? categoryById(id) : null;
-  if (id && !category) return showToast("Category를 찾지 못했어요.");
+  if (id && !category) return showToast("활동을 찾지 못했어요.");
   categoryEditingId = category?.id || null;
   $("#category-form").reset();
   setCategoryNameError();
-  $("#category-dialog-eyebrow").textContent = category ? "Category 편집" : "새 Category";
+  $("#category-dialog-eyebrow").textContent = category ? "활동 편집" : "새 활동";
   $("#category-dialog-title").textContent = category ? `${category.name}을 다듬으세요` : "남기고 싶은 시간을 추가하세요";
-  $("#save-category").textContent = category ? "변경사항 저장" : "Category 추가";
+  $("#save-category").textContent = category ? "변경사항 저장" : "활동 추가";
   if (category) {
     $("#new-category-name").value = category.name;
     $("#new-category-color").value = safeColor(category.color);
@@ -1033,14 +1070,14 @@ function focusCategoryManagement(id) {
 function saveCategoryFromDialog() {
   const name = $("#new-category-name").value.trim();
   if (!name || name.length > 20) {
-    setCategoryNameError(name ? "Category 이름은 20자 이하로 입력해주세요." : "Category 이름을 입력해주세요.");
+    setCategoryNameError(name ? "활동 이름은 20자 이하로 입력해주세요." : "활동 이름을 입력해주세요.");
     $("#new-category-name").focus();
     return;
   }
   const normalizedName = name.toLocaleLowerCase("ko-KR");
   const duplicate = state.categories.some((category) => category.id !== categoryEditingId && category.name.trim().toLocaleLowerCase("ko-KR") === normalizedName);
   if (duplicate) {
-    setCategoryNameError("같은 이름의 Category가 이미 있어요.");
+    setCategoryNameError("같은 이름의 활동이 이미 있어요.");
     $("#new-category-name").focus();
     return;
   }
@@ -1049,7 +1086,7 @@ function saveCategoryFromDialog() {
   let category = categoryEditingId ? categoryById(categoryEditingId) : null;
   const edited = Boolean(category);
   if (categoryEditingId && !category) {
-    setCategoryNameError("Category를 찾지 못했어요. 창을 닫고 다시 시도해주세요.");
+    setCategoryNameError("활동을 찾지 못했어요. 창을 닫고 다시 시도해주세요.");
     return;
   }
   if (category) {
@@ -1070,7 +1107,7 @@ function saveCategoryFromDialog() {
   $("#mini-insight-text").textContent = "";
   render();
   focusCategoryManagement(categoryId);
-  showToast(edited ? `${name} Category를 수정했어요.` : `${name} Category를 추가했어요.`);
+  showToast(edited ? `${name} 활동을 수정했어요.` : `${name} 활동을 추가했어요.`);
 }
 
 function exportData() {
@@ -1178,7 +1215,7 @@ async function disconnectSerial(showMessage = true) {
 async function requestAiReflection() {
   const button = $("#refresh-ai");
   const report = getReflectionReport();
-  if (!report.current.sessionCount) return showToast("완료된 기록이 생기면 AI 리플렉션을 만들 수 있어요.");
+  if (!report.current.sessionCount) return showToast("완료된 기록이 생기면 AI 돌아보기를 만들 수 있어요.");
   const facts = report.facts.map(({ message, evidence }) => ({ message, evidence }));
   button.disabled = true;
   button.textContent = "생성 중…";
@@ -1204,13 +1241,13 @@ async function requestAiReflection() {
       },
       createdAt: new Date().toISOString(),
     };
-    saveState(); renderReflections(); showToast("OpenAI 리플렉션을 만들었어요.");
+    saveState(); renderReflections(); showToast("AI 돌아보기를 만들었어요.");
   } catch (error) {
-    if (error.message === "OPENAI_API_KEY is not configured") showToast("API 키를 설정하면 OpenAI 리플렉션을 만들 수 있어요.");
-    else showToast("리플렉션을 만들지 못했어요. 근거 기반 카드로 계속 볼 수 있어요.");
+    if (error.message === "OPENAI_API_KEY is not configured") showToast("API 키를 설정하면 AI 돌아보기를 만들 수 있어요.");
+    else showToast("AI 돌아보기를 만들지 못했어요. 기록 기반 내용은 계속 볼 수 있어요.");
   } finally {
     button.disabled = false;
-    button.textContent = "AI 리플렉션 만들기";
+    button.textContent = "AI로 새로 만들기";
   }
 }
 
@@ -1309,7 +1346,7 @@ function wireEvents() {
   $("#new-category-name").addEventListener("input", () => setCategoryNameError());
   $("#new-category-name").addEventListener("invalid", (event) => {
     event.preventDefault();
-    setCategoryNameError("Category 이름을 입력해주세요.");
+    setCategoryNameError("활동 이름을 입력해주세요.");
     $("#new-category-name").focus();
   });
   $("#category-dialog").addEventListener("close", () => { categoryEditingId = null; setCategoryNameError(); });
@@ -1346,5 +1383,5 @@ if ("serviceWorker" in navigator) {
     refreshingForUpdate = true;
     window.location.reload();
   });
-  navigator.serviceWorker.register("sw.js?v=21", { updateViaCache: "none" }).then((registration) => registration.update()).catch(() => {});
+  navigator.serviceWorker.register("sw.js?v=22", { updateViaCache: "none" }).then((registration) => registration.update()).catch(() => {});
 }

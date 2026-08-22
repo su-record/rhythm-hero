@@ -48,12 +48,12 @@ test("Rhythm Hero server preserves beta state and protects API fallbacks", async
   assert.equal(shell.status, 200);
   const shellText = await shell.text();
   assert.match(shellText, /Rhythm Hero/);
-  assert.match(shellText, /<script defer src="app\.js\?v=21"><\/script>/);
+  assert.match(shellText, /<script defer src="app\.js\?v=22"><\/script>/);
   assert.match(shellText, /id="completion-dialog"/);
   assert.match(shellText, /id="post-session-prompt"/);
   assert.match(shellText, /id="memo-inbox"/);
 
-  const browserBundle = await fetch(`${server.baseUrl}/app.js?v=21`);
+  const browserBundle = await fetch(`${server.baseUrl}/app.js?v=22`);
   assert.equal(browserBundle.status, 200);
   const browserBundleText = await browserBundle.text();
   assert.doesNotMatch(browserBundleText, /^\s*import\s/m, "the direct-open browser bundle must not depend on ES module imports");
