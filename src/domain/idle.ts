@@ -59,6 +59,31 @@ const OPENERS: Record<TimeBand, string[]> = {
   evening: ["저녁이야. 오늘 하루 조용했네.", "하루가 거의 끝나가. 뭐 하나만 해볼까?"],
 };
 
+export interface NudgeFacts {
+  toyName: string;
+  userName: string;
+  timeBand: TimeBand;
+  lastActivity: string | null;
+  quietMinutes: number | null;
+  suggestion: string;
+  suggestMinutes: number;
+}
+
+/** What the toy knows when it decides to speak; the model gets nothing else. */
+export function nudgeFacts(state: AppState, check: IdleCheck, now: Date = new Date()): NudgeFacts | null {
+  const suggestion = suggestCategory(state, check.lastCategory);
+  if (!suggestion) return null;
+  return {
+    toyName: state.profile?.toyName ?? "장난감",
+    userName: state.profile?.name ?? "친구",
+    timeBand: timeBand(now),
+    lastActivity: check.lastCategory?.name ?? null,
+    quietMinutes: check.quietMinutes === null ? null : Math.round(check.quietMinutes),
+    suggestion: suggestion.name,
+    suggestMinutes: suggestion.goal && suggestion.goal < 30 ? suggestion.goal : 15,
+  };
+}
+
 /**
  * A nudge line in the voice of a bored toy, never a coach. It names a concrete,
  * small next step from the user's own Active 4 so the ask feels doable.

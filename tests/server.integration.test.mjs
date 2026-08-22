@@ -106,6 +106,10 @@ test("Rhythm Hero server preserves beta state and protects API fallbacks", async
   assert.doesNotMatch(workerText, /"\.\/[^"]*\?v=/, "cached asset paths must not carry hand-synced query strings");
   assert.match(workerText, /assets\/icons\/icon-192\.png/, "icons must be precached for offline installs");
 
+  const companionNoKey = await fetch(`${server.baseUrl}/api/companion`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ facts: { toyName: "뾰족", userName: "수", timeBand: "afternoon", lastActivity: null, quietMinutes: null, suggestion: "독서", suggestMinutes: 15 } }) });
+  assert.equal(companionNoKey.status, 503, "without a key the toy falls back to its template lines");
+  assert.equal((await companionNoKey.json()).error, "OPENAI_API_KEY is not configured");
+
   const clientId = "integrationtestclient01";
   const state = {
     categories: [{ id: "focus", name: "집중", color: "#123456", goal: 30, status: "active" }],

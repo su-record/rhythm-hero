@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { checkIdle, pickNudgeLine } from "../domain/idle.ts";
+import { checkIdle, nudgeFacts, pickNudgeLine } from "../domain/idle.ts";
+import { requestCompanionLine } from "../sync/companionApi.ts";
 import type { AppState } from "../domain/types.ts";
 
 const POLL_MS = 30_000;
@@ -34,9 +35,17 @@ export function useIdleNudge(state: AppState, onNudge: (line: string) => void): 
     const anchor = `${now.toDateString()}:${current.sessions.filter((session) => session.status === "completed").length}`;
     if (!force && spokenFor.current === anchor) return;
     spokenFor.current = anchor;
-    const line = pickNudgeLine(current, check, now);
-    setNudge({ line, at: now.getTime() });
-    notify(line);
+    const fallback = pickNudgeLine(current, check, now);
+    const facts = nudgeFacts(current, check, now);
+    const stamp = now.getTime();
+    // Show the template at once; swap in the model's line if it arrives and is sound.
+    setNudge({ line: fallback, at: stamp });
+    const deliver = (line: string) => {
+      setNudge((existing) => (existing && existing.at === stamp ? { line, at: stamp } : existing));
+      notify(line);
+    };
+    if (!facts) return deliver(fallback);
+    void requestCompanionLine(facts).then((result) => deliver(result.kind === "created" ? result.line : fallback));
   }, []);
 
   useEffect(() => {

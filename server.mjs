@@ -105,6 +105,56 @@ async function createReflection(request, response) {
   }
 }
 
+const BANNED_TONE = /왜|실패|게을|안 했|해야|반성|잔소리|실망/;
+
+function validCompanionFacts(value) {
+  if (!value || typeof value !== "object") return false;
+  const text = (field, max) => typeof value[field] === "string" && value[field].length <= max;
+  return text("toyName", 24) && text("userName", 24) && text("timeBand", 12) && text("suggestion", 40)
+    && (value.lastActivity === null || text("lastActivity", 40))
+    && (value.quietMinutes === null || (Number.isFinite(value.quietMinutes) && value.quietMinutes >= 0 && value.quietMinutes <= 1440))
+    && (typeof value.suggestMinutes === "number" && value.suggestMinutes >= 1 && value.suggestMinutes <= 180);
+}
+
+/* The toy's line comes from the model, but only the facts leave the server and
+   the reply is rejected unless it still sounds like a bored toy, not a coach. */
+async function createCompanionLine(request, response) {
+  if (!process.env.OPENAI_API_KEY) return sendJson(response, 503, { error: "OPENAI_API_KEY is not configured" });
+  try {
+    const { facts } = await readJson(request);
+    if (!validCompanionFacts(facts)) return sendJson(response, 400, { error: "Invalid companion facts" });
+    const result = await fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
+      body: JSON.stringify({
+        model: process.env.OPENAI_MODEL || "gpt-5.6",
+        store: false,
+        instructions: [
+          `You are ${facts.toyName}, a small spiky toy that lives on ${facts.userName}'s desk and records their time with four buttons.`,
+          "The user has been quiet for a while. Say ONE short, playful Korean sentence (max 40 characters) in a bored, affectionate toy voice (반말).",
+          `Gently suggest the activity "${facts.suggestion}" for about ${facts.suggestMinutes} minutes.`,
+          "Never scold, never mention failure, laziness, guilt, or what they should have done. No numbers other than the minutes. No emoji.",
+          'Return JSON only: {"line": string}.',
+        ].join(" "),
+        input: JSON.stringify({ timeBand: facts.timeBand, lastActivity: facts.lastActivity, quietMinutes: facts.quietMinutes }),
+      }),
+    });
+    const payload = await result.json();
+    if (!result.ok) {
+      console.error("OpenAI companion error", result.status, payload?.error?.message || "unknown");
+      return sendJson(response, 502, { error: "Companion API request failed" });
+    }
+    let parsed;
+    try { parsed = JSON.parse(payload.output_text); } catch { return sendJson(response, 502, { error: "Companion API returned invalid output" }); }
+    const line = typeof parsed.line === "string" ? parsed.line.trim() : "";
+    if (!line || line.length > 60 || BANNED_TONE.test(line)) return sendJson(response, 502, { error: "Companion API returned an unsafe line" });
+    sendJson(response, 200, { line });
+  } catch (error) {
+    console.error("Companion endpoint error", error.message);
+    sendJson(response, 500, { error: "Unable to create companion line" });
+  }
+}
+
 const server = createServer(async (request, response) => {
   const url = new URL(request.url, `http://${request.headers.host}`);
   const stateMatch = url.pathname.match(/^\/api\/state\/([a-zA-Z0-9_-]+)$/);
@@ -114,6 +164,10 @@ const server = createServer(async (request, response) => {
   }
   if (request.method === "POST" && request.url === "/api/reflection") {
     createReflection(request, response);
+    return;
+  }
+  if (request.method === "POST" && request.url === "/api/companion") {
+    createCompanionLine(request, response);
     return;
   }
   if (request.method !== "GET" && request.method !== "HEAD") {
