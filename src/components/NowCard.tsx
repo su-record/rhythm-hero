@@ -9,9 +9,10 @@ interface NowCardProps {
   session: ActiveSession | null;
   category: Category | undefined;
   onStop: () => void;
+  onOpen: () => void;
 }
 
-export const NowCard = forwardRef<HTMLElement, NowCardProps>(function NowCard({ session, category, onStop }, ref) {
+export const NowCard = forwardRef<HTMLElement, NowCardProps>(function NowCard({ session, category, onStop, onOpen }, ref) {
   const running = Boolean(session && category);
   return (
     <section
@@ -22,14 +23,16 @@ export const NowCard = forwardRef<HTMLElement, NowCardProps>(function NowCard({ 
       tabIndex={-1}
     >
       <div className="now-pulse" aria-hidden="true" />
-      <span className="now-icon" aria-hidden="true">
-        {category ? <ActivityIcon category={category} size="activity-icon-now" /> : null}
-      </span>
-      <div className="now-copy">
-        <p className="eyebrow" id="now-state-label">지금 기록 중</p>
-        <strong id="now-category">{category?.name ?? ""}</strong>
-      </div>
-      <p className="now-duration">{session ? formatClock(durationMs(session)) : "00:00:00"}</p>
+      <button className="now-open" type="button" aria-label="전체 화면으로 보기" onClick={onOpen}>
+        <span className="now-icon" aria-hidden="true">
+          {category ? <ActivityIcon category={category} size="activity-icon-now" /> : null}
+        </span>
+        <span className="now-copy">
+          <span className="eyebrow" id="now-state-label">지금 기록 중</span>
+          <strong id="now-category">{category?.name ?? ""}</strong>
+        </span>
+        <span className="now-duration">{session ? formatClock(durationMs(session)) : "00:00:00"}</span>
+      </button>
       <button className="button dark" type="button" aria-label={category ? `${category.name} 기록 종료` : "기록 종료"} onClick={onStop}>
         종료
       </button>

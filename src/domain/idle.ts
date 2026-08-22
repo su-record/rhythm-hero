@@ -1,7 +1,7 @@
 import { categoryById } from "./stats.ts";
 import type { AppState, Category, CompanionSettings, Session } from "./types.ts";
 
-export const DEFAULT_COMPANION: CompanionSettings = { voice: true, idleMinutes: 90 };
+export const DEFAULT_COMPANION: CompanionSettings = { voice: true, idleMinutes: 90, cheerTone: "high" };
 
 /** The toy only speaks while a person is plausibly awake. */
 export const WAKING_HOURS = { start: 8, end: 23 };

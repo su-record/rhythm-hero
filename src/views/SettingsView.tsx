@@ -16,6 +16,7 @@ interface SettingsViewProps {
   installState: InstallState;
   onInstall: () => void;
   onVoiceChange: (voice: boolean) => void;
+  onCheerToneChange: (tone: "high" | "normal") => void;
   onIdleMinutesChange: (minutes: number) => void;
   onTestCompanion: () => void;
   onEditProfile: () => void;
@@ -198,6 +199,19 @@ export function SettingsView({ state, active, deviceConnected, installState, ...
             <input type="checkbox" checked={state.companion.voice} onChange={(event) => handlers.onVoiceChange(event.target.checked)} />
             <span>목소리로 말하기</span>
           </label>
+          <span className="segmented goal-type-toggle" role="group" aria-label="시작·끝 목소리 톤">
+            {(["high", "normal"] as const).map((tone) => (
+              <button
+                key={tone}
+                type="button"
+                className={(state.companion.cheerTone ?? "high") === tone ? "selected" : undefined}
+                aria-pressed={(state.companion.cheerTone ?? "high") === tone}
+                onClick={() => handlers.onCheerToneChange(tone)}
+              >
+                {tone === "high" ? "높은 톤" : "또렷한 톤"}
+              </button>
+            ))}
+          </span>
           <label className="companion-threshold">
             <span>조용한 지</span>
             <input

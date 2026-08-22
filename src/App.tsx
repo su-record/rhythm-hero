@@ -30,6 +30,7 @@ import { CategoryDetailDialog } from "./dialogs/CategoryDetailDialog.tsx";
 import { CategoryDialog } from "./dialogs/CategoryDialog.tsx";
 import { CompletionDialog } from "./dialogs/CompletionDialog.tsx";
 import { DeviceDialog } from "./dialogs/DeviceDialog.tsx";
+import { FocusDialog } from "./dialogs/FocusDialog.tsx";
 import { OnboardingDialog } from "./dialogs/OnboardingDialog.tsx";
 import { ProfileDialog } from "./dialogs/ProfileDialog.tsx";
 import { completeOnboarding } from "./domain/onboarding.ts";
@@ -46,6 +47,10 @@ export function App() {
   const [tab, setTab] = useState<TabId>("today");
   const [aiPending, setAiPending] = useState(false);
   const [profileEditing, setProfileEditing] = useState(false);
+  const [focusOpen, setFocusOpen] = useState(false);
+  const activeSessionId = state.activeSession?.id ?? null;
+  // Every new session opens the focus screen; stopping closes it.
+  useEffect(() => setFocusOpen(Boolean(activeSessionId)), [activeSessionId]);
   const onboarding = state.profile === null;
   const nowCard = useRef<HTMLElement>(null);
   const { message, showToast } = useToast();
@@ -59,6 +64,7 @@ export function App() {
 
   const openCompletion = useCallback((session: Session) => dialogs.openCompletion(session.id), [dialogs]);
   const voiceOn = state.companion.voice;
+  const cheerTone = state.companion.cheerTone ?? "high";
   const prompt = usePostSessionPrompt(state, pending, dialogs.completionId !== null, dialogs.openCompletion);
 
   const switchTab = useCallback((next: TabId) => {
@@ -69,10 +75,7 @@ export function App() {
   const revealActiveSession = useCallback((category: Category) => {
     dialogs.closeAll();
     switchTab("today");
-    requestAnimationFrame(() => {
-      nowCard.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-      nowCard.current?.focus({ preventScroll: true });
-    });
+    setFocusOpen(true);
     showToast(`${category.name} 기록이 이미 진행 중이에요.`);
   }, [dialogs, switchTab, showToast]);
 
@@ -82,11 +85,11 @@ export function App() {
       return { state: result.state, result: result.outcome };
     });
     if (outcome.kind === "unassigned") return showToast("아직 연결되지 않은 버튼이에요.");
-    if (voiceOn) cheer(outcome.kind === "stopped" ? "끝!" : "시작!");
+    if (voiceOn) cheer(outcome.kind === "stopped" ? "stop" : "start", cheerTone);
     if (outcome.kind === "started") return showToast(`${outcome.category.name} 기록을 시작했어요.`);
     if (outcome.kind === "stopped") return openCompletion(outcome.session);
     prompt.show(outcome.session.id);
-  }, [showToast, openCompletion, prompt, voiceOn]);
+  }, [showToast, openCompletion, prompt, voiceOn, cheerTone]);
 
   useKeyboardButtons(pressButton);
   const serial = useSerialDevice(pressButton);
@@ -122,9 +125,9 @@ export function App() {
       return { state: result.state, result: result.completedSession };
     });
     if (!completed) return;
-    if (voiceOn) cheer("끝!");
+    if (voiceOn) cheer("stop", cheerTone);
     openCompletion(completed);
-  }, [openCompletion, voiceOn]);
+  }, [openCompletion, voiceOn, cheerTone]);
 
   const settleMemo = useCallback((memo: string, captureState: "saved" | "skipped") => {
     const sessionId = dialogs.completionId;
@@ -141,10 +144,10 @@ export function App() {
       return { state: result.state, result };
     });
     if (outcome.started) {
-      if (voiceOn) cheer("시작!");
+      if (voiceOn) cheer("start", cheerTone);
       showToast(`${outcome.started.name} 기록을 시작했어요.`);
     } else if (outcome.alreadyRunning) revealActiveSession(outcome.alreadyRunning);
-  }, [dialogs, showToast, revealActiveSession, voiceOn]);
+  }, [dialogs, showToast, revealActiveSession, voiceOn, cheerTone]);
 
   const saveAssignments = useCallback((assignments: string[]) => {
     if (state.activeSession) return showToast("진행 중인 기록을 먼저 종료해주세요.");
@@ -236,7 +239,7 @@ export function App() {
           onOpenDevice={dialogs.openDevice}
           onHome={() => switchTab("today")}
         />
-        <NowCard ref={nowCard} session={state.activeSession} category={activeCategory} onStop={stopSession} />
+        <NowCard ref={nowCard} session={state.activeSession} category={activeCategory} onStop={stopSession} onOpen={() => setFocusOpen(true)} />
 
         <TodayView
           state={state}
@@ -279,6 +282,10 @@ export function App() {
             if (outcome !== "accepted") showToast("설치를 취소했어요. 설정에서 다시 추가할 수 있어요.");
           })}
           onVoiceChange={(voice) => commit((current) => actions.setCompanion(current, { voice }))}
+          onCheerToneChange={(tone) => {
+            commit((current) => actions.setCompanion(current, { cheerTone: tone }));
+            cheer("start", tone);
+          }}
           onIdleMinutesChange={(idleMinutes) => commit((current) => actions.setCompanion(current, { idleMinutes }))}
           onTestCompanion={() => {
             switchTab("today");
@@ -318,6 +325,15 @@ export function App() {
 
       <PostSessionPrompt copy={prompt.copy} onWrite={prompt.write} onDismiss={prompt.hide} />
 
+      <FocusDialog
+        state={state}
+        session={state.activeSession}
+        category={activeCategory}
+        open={focusOpen && !onboarding && dialogs.completionId === null}
+        tick={tick}
+        onStop={stopSession}
+        onMinimize={() => setFocusOpen(false)}
+      />
       <OnboardingDialog
         open={onboarding}
         onComplete={(profile, activities) => {

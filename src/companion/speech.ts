@@ -44,9 +44,17 @@ export function speak(text: string, options: SpeakOptions = {}): boolean {
   return true;
 }
 
-/* Button feedback: a short, bright shout. Pitch is capped at 2 by the API. */
-export function cheer(text: "시작!" | "끝!"): boolean {
-  return speak(text, { rate: 1.15, pitch: 1.9 });
+export type CheerTone = "high" | "normal";
+
+/* Button feedback: a short, bright shout. Near the API's pitch ceiling (2.0)
+   the phonemes smear, so "high" stays at 1.4 and speaks a touch slower.
+   A lone syllable like "끝" is mumbled by most voices; a trailing vowel
+   sound gives it somewhere to land without changing the word. */
+const CHEER_TEXT: Record<"start" | "stop", string> = { start: "시작!", stop: "끝~!" };
+
+export function cheer(kind: "start" | "stop", tone: CheerTone = "high"): boolean {
+  const pitch = tone === "high" ? 1.4 : 1.1;
+  return speak(CHEER_TEXT[kind], { rate: 0.95, pitch });
 }
 
 export function stopSpeaking(): void {

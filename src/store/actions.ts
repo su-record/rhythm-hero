@@ -206,7 +206,8 @@ export function setCompanion(state: AppState, patch: Partial<CompanionSettings>)
   const next: CompanionSettings = {
     voice: patch.voice ?? state.companion.voice,
     idleMinutes: Math.max(MIN_IDLE_MINUTES, Math.min(MAX_IDLE_MINUTES, Number(patch.idleMinutes ?? state.companion.idleMinutes) || state.companion.idleMinutes)),
+    cheerTone: patch.cheerTone ?? state.companion.cheerTone ?? "high",
   };
-  if (next.voice === state.companion.voice && next.idleMinutes === state.companion.idleMinutes) return state;
+  if (next.voice === state.companion.voice && next.idleMinutes === state.companion.idleMinutes && next.cheerTone === state.companion.cheerTone) return state;
   return { ...state, companion: next };
 }

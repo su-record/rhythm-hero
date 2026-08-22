@@ -108,6 +108,8 @@ export interface AiReflection {
 export interface CompanionSettings {
   voice: boolean;
   idleMinutes: number;
+  /** Button shouts: "high" is the toy voice, "normal" is easier to make out on small speakers. */
+  cheerTone?: "high" | "normal";
 }
 
 export type ToyFamily = "spike" | "bouncer";

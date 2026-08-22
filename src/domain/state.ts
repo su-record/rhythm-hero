@@ -84,6 +84,7 @@ export function normalizeState(parsed: AppState): AppState {
   parsed.companion = {
     voice: parsed.companion?.voice ?? DEFAULT_COMPANION.voice,
     idleMinutes: Number.isFinite(parsed.companion?.idleMinutes) ? Math.max(1, parsed.companion.idleMinutes) : DEFAULT_COMPANION.idleMinutes,
+    cheerTone: parsed.companion?.cheerTone === "normal" ? "normal" : "high",
   };
   parsed.historyRange = normalizeRange(parsed.historyRange, 7);
   parsed.reflectionRange = normalizeRange(parsed.reflectionRange, 7);
