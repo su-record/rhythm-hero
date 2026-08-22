@@ -1,5 +1,5 @@
 ---
-status: pending
+status: complete
 phase: 2
 lastUpdated: 2026-08-22
 ---
@@ -97,3 +97,25 @@ UI를 모르는 계층을 먼저 못 박고, 그 위에 화면을 올린다.
 - [ ] AC-5: 신규 테스트가 시간 경계·리플렉션 규칙·지문 안정성을 각각 1건 이상 덮는다
 - [ ] AC-6: `npm run typecheck` 에러 0건, `any` 사용 0건
 </acceptance>
+
+## 구현 결과 (2026-08-22)
+
+| AC | 결과 | 실측 |
+|----|------|------|
+| AC-1 이중 정의 0 | ✅ | `completeActiveSession` 정의 위치 1곳 (`src/domain/state.ts`) |
+| AC-2 도메인 순수성 | ✅ | `src/domain/`의 `document`/`window`/`localStorage`/`fetch` 참조 0건 |
+| AC-3 기존 단언 유지 | ✅ | 세션 상태 테스트 8개 단언 전부 보존 |
+| AC-4 리포트 조립 함수 | ✅ | `getReflectionReport` 15줄, 규칙 3종이 `REFLECTION_RULES` 배열로 분리 |
+| AC-5 신규 테스트 | ✅ | 시간 경계 8건 + 리플렉션 7건 + 상태 10건 = 25건 |
+| AC-6 타입 검사 | ✅ | 에러 0건, `any` 0건 |
+
+전체 테스트 **8개 → 28개** (통합 3 + 도메인 25).
+
+### SPEC과 달라진 점
+
+| 항목 | SPEC | 실제 | 이유 |
+|------|------|------|------|
+| 리플렉션 규칙 수 | 5종 | **3종** (`comparison`/`top-share`/`rhythm`) | 원본 확인 결과 규칙은 3개이고 각각 분기 2~3개를 갖는 구조였다. 분기를 별도 함수로 빼 규칙당 30줄 제약을 지켰다 |
+| `app.js` 삭제 시점 | Phase 4 | **Phase 2** | Phase 1에서 이미 참조가 끊긴 죽은 코드이고, 남겨두면 AC-1(이중 정의 0)이 성립하지 않는다. Phase 4는 `git show` 로 원본 마크업을 참조한다 |
+| 테스트 tsconfig | 단일 | `tsconfig.test.json` 분리 | 브라우저 설정에 `types: ["node"]`를 섞으면 도메인이 Node API를 쓰는 실수를 타입 검사가 잡지 못한다 |
+| 모듈 import 확장자 | 미지정 | `./x.ts` 명시 | Node의 타입 스트리핑은 확장자 해석을 하지 않는다. 명시해야 테스트가 도메인 모듈을 직접 import할 수 있다 |

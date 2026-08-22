@@ -10,10 +10,10 @@
     "build": "npm run build:icons && npm run typecheck && vite build && node scripts/patch-classic-script.mjs",
     "build:icons": "node scripts/build-icons.mjs",
     "build:mockup": "npm run build && node scripts/build-public-mockup.mjs",
-    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.node.json",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json && tsc --noEmit -p tsconfig.node.json",
     "check": "node --check server.mjs && node --check public/sw.js && node --check scripts/build-icons.mjs && node --check scripts/build-public-mockup.mjs",
     "pretest": "npm run build",
-    "test": "node --test tests/server.integration.test.mjs tests/session-state.test.mjs"
+    "test": "node --test --experimental-strip-types tests/server.integration.test.mjs tests/domain/*.test.ts"
   },
   "dependencies": {
     "react": "^19.2.8",

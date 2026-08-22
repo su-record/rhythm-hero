@@ -1,6 +1,6 @@
 ---
 status: pending
-currentPhase: 1
+currentPhase: 2
 totalPhases: 6
 createdAt: 2026-08-22
 lastUpdated: 2026-08-22
@@ -21,7 +21,7 @@ Rhythm Hero의 바닐라 단일 파일 프론트엔드(`app.js` 1387줄)를 **Vi
 | 순서 | SPEC File | Feature File | 상태 |
 |------|-----------|--------------|------|
 | 1 | phase-1-build-foundation.md | phase-1-build-foundation.feature | ✅ |
-| 2 | phase-2-domain.md | phase-2-domain.feature | ⬜ |
+| 2 | phase-2-domain.md | phase-2-domain.feature | ✅ |
 | 3 | phase-3-store.md | phase-3-store.feature | ⬜ |
 | 4 | phase-4-views.md | phase-4-views.feature | ⬜ |
 | 5 | phase-5-device-pwa.md | phase-5-device-pwa.feature | ⬜ |

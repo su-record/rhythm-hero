@@ -5,8 +5,8 @@ import { once } from "node:events";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { overlapMsForDay } from "../time-utils.mjs";
-import { applyActiveAssignments, placeCategoryInSlot } from "../state-utils.mjs";
+import { overlapMsForDay } from "../src/domain/time.ts";
+import { applyActiveAssignments, placeCategoryInSlot } from "../src/domain/state.ts";
 
 async function startServer() {
   const dataDirectory = await mkdtemp(join(tmpdir(), "habit-toy-test-"));
