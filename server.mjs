@@ -1,29 +1,15 @@
 import { createReadStream, existsSync, statSync } from "node:fs";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
-import { extname, join, normalize, relative, resolve } from "node:path";
+import { join, normalize, relative, resolve } from "node:path";
+
+import { mimeTypeFor } from "./scripts/mime.mjs";
 
 const root = process.cwd();
 const dataRoot = process.env.HABIT_TOY_DATA_DIR ? resolve(process.env.HABIT_TOY_DATA_DIR) : join(root, ".habit-toy-data");
 // Serving the build output keeps sources, configs and tests unreachable by construction.
 const clientRoot = process.env.HABIT_TOY_CLIENT_DIR ? resolve(process.env.HABIT_TOY_CLIENT_DIR) : join(root, "dist", "client");
 const port = Number(process.env.PORT || 4173);
-const types = {
-  ".css": "text/css; charset=utf-8",
-  ".html": "text/html; charset=utf-8",
-  ".ico": "image/x-icon",
-  ".js": "text/javascript; charset=utf-8",
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".mjs": "text/javascript; charset=utf-8",
-  ".json": "application/json; charset=utf-8",
-  ".png": "image/png",
-  ".svg": "image/svg+xml; charset=utf-8",
-  ".webmanifest": "application/manifest+json; charset=utf-8",
-  ".webp": "image/webp",
-  ".woff": "font/woff",
-  ".woff2": "font/woff2",
-};
 function sendJson(response, status, payload) {
   response.writeHead(status, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
   response.end(JSON.stringify(payload));
@@ -151,7 +137,7 @@ const server = createServer(async (request, response) => {
     response.end("Not found");
     return;
   }
-  response.writeHead(200, { "Content-Type": types[extname(filePath)] || "application/octet-stream", "Cache-Control": "no-cache" });
+  response.writeHead(200, { "Content-Type": mimeTypeFor(filePath), "Cache-Control": "no-cache" });
   if (request.method === "HEAD") { response.end(); return; }
   createReadStream(filePath).pipe(response);
 });

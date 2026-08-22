@@ -1,5 +1,5 @@
 ---
-status: pending
+status: complete
 phase: 6
 lastUpdated: 2026-08-22
 ---
@@ -97,3 +97,19 @@ lastUpdated: 2026-08-22
 - [ ] AC-6: 회귀 체크리스트 전 항목이 통과로 기록된다
 - [ ] AC-7: README가 새 개발·빌드 절차를 반영한다
 </acceptance>
+
+## 구현 결과 (2026-08-22)
+
+| AC | 결과 | 실측 |
+|----|------|------|
+| AC-1 dist/client 서빙 | ✅ | `/`, `/app.js`, `/styles.css`, `/manifest.webmanifest`, `/sw.js`, 아이콘 모두 200 |
+| AC-2 소스 비노출 | ✅ | `/src/main.tsx`, `/server.mjs`, `/package.json`, `/vite.config.ts`, `/.env.example`, `/tests/…`, `/docs/…` 모두 404 |
+| AC-3 커버리지 유지 | ✅ | 삭제 단언 7건마다 대체 단언 배치, 비공개 경로 검사 4→8개, 전체 8→64건 |
+| AC-4 목업 자동 수집 | ✅ | 수동 목록 8개 → 디렉터리 순회 13개. `tests/build/mockup.test.mjs`가 누락 시 실패한다 |
+| AC-5 저장 포맷 호환 | ✅ | `/api/state/:id` 핸들러 무변경, `.habit-toy-data` 포맷 그대로 |
+| AC-6 회귀 체크리스트 | ✅ | `docs/migration-checklist.md` 작성. 자동 검증 항목과 수동 항목을 구분 |
+| AC-7 README | ✅ | 디렉터리 구조, dev/build/start 절차, `file://` 실행 조건 반영 |
+
+### 부수 성과
+
+목업 Worker의 수동 자산 목록이 **이미 아이콘 4개와 캐릭터 이미지 4개를 빠뜨리고 있었다**. 디렉터리 순회로 바꾸자 8개에서 13개로 늘었다. 공개 배포본에서 manifest가 가리키는 아이콘이 404였다는 뜻이고, 설치가 되지 않았을 것이다.

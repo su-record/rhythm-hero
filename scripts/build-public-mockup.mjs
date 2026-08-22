@@ -1,29 +1,36 @@
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
-import { basename, resolve } from "node:path";
+import { readdir, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { posix, resolve } from "node:path";
+
+import { mimeTypeFor } from "./mime.mjs";
 
 const root = resolve(import.meta.dirname, "..");
+const clientRoot = resolve(root, "dist", "client");
 const output = resolve(root, "dist");
-const assets = [
-  ["/", "index.html", "text/html; charset=utf-8"],
-  ["/index.html", "index.html", "text/html; charset=utf-8"],
-  ["/app.js", "app.js", "text/javascript; charset=utf-8"],
-  ["/styles.css", "styles.css", "text/css; charset=utf-8"],
-  ["/sw.js", "sw.js", "text/javascript; charset=utf-8"],
-  ["/manifest.webmanifest", "manifest.webmanifest", "application/manifest+json; charset=utf-8"],
-  ["/time-utils.mjs", "time-utils.mjs", "text/javascript; charset=utf-8"],
-  ["/state-utils.mjs", "state-utils.mjs", "text/javascript; charset=utf-8"],
-  ["/assets/icons/icon-192.png", "assets/icons/icon-192.png", "image/png"],
-  ["/assets/icons/icon-512.png", "assets/icons/icon-512.png", "image/png"],
-  ["/assets/icons/icon-maskable-512.png", "assets/icons/icon-maskable-512.png", "image/png"],
-  ["/assets/icons/apple-touch-icon-180.png", "assets/icons/apple-touch-icon-180.png", "image/png"],
-];
 
-const encoded = await Promise.all(assets.map(async ([pathname, source, type]) => [
+/* Walking the build output means a newly added asset ships without anyone
+   remembering to extend a hand-written list. */
+async function collect(directory, prefix = "") {
+  const entries = await readdir(directory, { withFileTypes: true });
+  const files = await Promise.all(entries.map(async (entry) => {
+    const child = resolve(directory, entry.name);
+    if (entry.isDirectory()) return collect(child, posix.join(prefix, entry.name));
+    return [[posix.join("/", prefix, entry.name), child]];
+  }));
+  return files.flat();
+}
+
+const collected = await collect(clientRoot);
+if (!collected.length) throw new Error(`No build output in ${clientRoot}. Run "npm run build" first.`);
+
+const assets = await Promise.all(collected.map(async ([pathname, filePath]) => [
   pathname,
-  { body: (await readFile(resolve(root, source))).toString("base64"), type },
+  { body: (await readFile(filePath)).toString("base64"), type: mimeTypeFor(filePath) },
 ]));
+const shell = assets.find(([pathname]) => pathname === "/index.html");
+if (!shell) throw new Error("The build output has no index.html to serve as the shell.");
+assets.push(["/", shell[1]]);
 
-const worker = `const assets = new Map(${JSON.stringify(encoded)});
+const worker = `const assets = new Map(${JSON.stringify(assets)});
 const json = (body, status = 200) => new Response(JSON.stringify(body), {
   status,
   headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" },
@@ -35,7 +42,8 @@ export default {
     if (url.pathname.startsWith("/api/")) {
       return json({ error: "Public mockup mode: shared server features are disabled." }, 503);
     }
-    const asset = assets.get(url.pathname) || (url.pathname === "/" ? assets.get("/") : null);
+    // Any in-scope route falls back to the shell so the installed app can deep link.
+    const asset = assets.get(url.pathname) || (request.mode === "navigate" ? assets.get("/") : null);
     if (!asset) return new Response("Not found", { status: 404 });
     const body = Uint8Array.from(atob(asset.body), (character) => character.charCodeAt(0));
     return new Response(body, {
@@ -49,7 +57,7 @@ export default {
 };
 `;
 
-await rm(output, { recursive: true, force: true });
 await mkdir(resolve(output, "server"), { recursive: true });
+await rm(resolve(output, "server", "index.js"), { force: true });
 await writeFile(resolve(output, "server", "index.js"), worker);
-console.log(`Built public Rhythm Hero mockup with ${assets.length} static assets.`);
+console.log(`Built public Rhythm Hero mockup from ${collected.length} build assets.`);
