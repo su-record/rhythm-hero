@@ -30,7 +30,9 @@ import { CategoryDetailDialog } from "./dialogs/CategoryDetailDialog.tsx";
 import { CategoryDialog } from "./dialogs/CategoryDialog.tsx";
 import { CompletionDialog } from "./dialogs/CompletionDialog.tsx";
 import { DeviceDialog } from "./dialogs/DeviceDialog.tsx";
+import { OnboardingDialog } from "./dialogs/OnboardingDialog.tsx";
 import { ProfileDialog } from "./dialogs/ProfileDialog.tsx";
+import { completeOnboarding } from "./domain/onboarding.ts";
 import { RecordDialog } from "./dialogs/RecordDialog.tsx";
 import { SessionDialog } from "./dialogs/SessionDialog.tsx";
 import { HistoryView } from "./views/HistoryView.tsx";
@@ -44,7 +46,7 @@ export function App() {
   const [tab, setTab] = useState<TabId>("today");
   const [aiPending, setAiPending] = useState(false);
   const [profileEditing, setProfileEditing] = useState(false);
-  const profileOpen = state.profile === null || profileEditing;
+  const onboarding = state.profile === null;
   const nowCard = useRef<HTMLElement>(null);
   const { message, showToast } = useToast();
   const syncStatus = useRemoteSync();
@@ -316,15 +318,21 @@ export function App() {
 
       <PostSessionPrompt copy={prompt.copy} onWrite={prompt.write} onDismiss={prompt.hide} />
 
+      <OnboardingDialog
+        open={onboarding}
+        onComplete={(profile, activities) => {
+          commit((current) => completeOnboarding(current, profile, activities));
+          showToast(`${profile.name}, 반가워요. ${profile.toyName}가 기다리고 있어요.`);
+        }}
+      />
       <ProfileDialog
-        open={profileOpen}
+        open={!onboarding && profileEditing}
         current={state.profile}
         onClose={() => setProfileEditing(false)}
         onSave={(profile) => {
-          const firstRun = state.profile === null;
           commit((current) => actions.setProfile(current, profile));
           setProfileEditing(false);
-          showToast(firstRun ? `${profile.name}, 반가워요. ${profile.toyName}가 기다리고 있어요.` : "바꿨어요.");
+          showToast("바꿨어요.");
         }}
       />
       <Active4Dialog state={state} open={dialogs.active4Open} onClose={dialogs.closeActive4} onSave={saveAssignments} />
