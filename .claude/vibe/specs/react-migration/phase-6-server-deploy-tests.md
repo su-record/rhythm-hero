@@ -54,7 +54,7 @@ lastUpdated: 2026-08-22
 
 ### 4. 문서 갱신
 1. [ ] `README.md` — 개발(`npm run dev`)·빌드(`npm run build`)·실행(`npm start`) 절차, 디렉터리 구조
-2. [ ] `DESIGN-HANDOFF.md`의 파일 경로 참조가 있으면 갱신
+2. [ ] `docs/DESIGN-HANDOFF.md`의 파일 경로 참조가 있으면 갱신
 3. [ ] `.gitignore`에 `dist/` 유지 확인
 
 ### 5. 회귀 체크리스트 수행

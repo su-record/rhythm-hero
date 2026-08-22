@@ -11,13 +11,3 @@ import { appStore } from "./appStore.ts";
 export function useAppState(): AppState {
   return useSyncExternalStore(appStore.subscribe, appStore.getState, appStore.getState);
 }
-
-/**
- * A single field of the state. The selector must be defined at module scope:
- * useSyncExternalStore compares snapshots by identity, so a selector that
- * builds a fresh object on every call would rerender forever.
- */
-export function useAppStateField<T>(selector: (state: AppState) => T): T {
-  const read = () => selector(appStore.getState());
-  return useSyncExternalStore(appStore.subscribe, read, read);
-}

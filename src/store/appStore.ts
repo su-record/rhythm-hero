@@ -47,3 +47,15 @@ export function replaceState(next: AppState): void {
   appStore.update(() => normalizeState(next));
   writeStoredValue(STORAGE_KEY, JSON.stringify(appStore.getState()));
 }
+
+/** Commits a transition that also reports an outcome the view must react to. */
+export function commitWith<T>(updater: (state: AppState) => { state: AppState; result: T }): T {
+  let captured: { value: T } | null = null;
+  commit((state) => {
+    const outcome = updater(state);
+    captured = { value: outcome.result };
+    return outcome.state;
+  });
+  if (!captured) throw new Error("A commit must always produce an outcome");
+  return (captured as { value: T }).value;
+}

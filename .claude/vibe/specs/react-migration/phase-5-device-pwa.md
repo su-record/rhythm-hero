@@ -1,5 +1,5 @@
 ---
-status: pending
+status: complete
 phase: 5
 lastUpdated: 2026-08-22
 ---
@@ -64,7 +64,7 @@ Phase 1에서 이미 설치 가능성·오프라인 폴백·설치 패널이 완
 ## Constraints
 <constraints>
 - Web Serial 미지원 브라우저에서 앱이 깨지지 않아야 한다. `"serial" in navigator` 가드 유지.
-- 시리얼 baudRate 115200, 프로토콜 문자열 형식을 바꾸지 않는다 (`Hardware-Serial-Protocol.md` 계약).
+- 시리얼 baudRate 115200, 프로토콜 문자열 형식을 바꾸지 않는다 (`docs/Hardware-Serial-Protocol.md` 계약).
 - 설치 패널 문구 4종과 상태 판정 조건(`navigator.standalone === false`로 iOS Safari 식별)을 유지한다.
 - 서비스워커 `CACHE` 값은 배포 시에만 올린다. 이 Phase에서 임의로 바꾸지 않는다.
 </constraints>
@@ -92,3 +92,16 @@ Phase 1에서 이미 설치 가능성·오프라인 폴백·설치 패널이 완
 - [ ] AC-5: 설치 패널 5상태가 기존과 동일하게 판정된다
 - [ ] AC-6: 버튼 입력 4경로가 모두 동일한 액션으로 수렴한다
 </acceptance>
+
+## 구현 결과 (2026-08-22)
+
+| AC | 결과 | 실측 |
+|----|------|------|
+| AC-1 프로토콜 순수화 | ✅ | `parseHardwareLine`이 순수 함수. 허용 4형태 + 거부 9형태를 테스트로 덮음 |
+| AC-2 reader lock | ✅ | 읽기 루프가 `finally`에서 항상 `releaseLock()`, 언마운트 시 정리 |
+| AC-3 중복 송신 억제 | ✅ | payload 지문 비교 유지. 동일 상태에서 지문이 안정적임을 테스트로 확인 |
+| AC-4 미지원 브라우저 | ✅ | `"serial" in navigator` 가드 후 안내 토스트만 표시 |
+| AC-5 설치 패널 5상태 | ✅ | `installed`/`ready`/`ios`/`dismissed`/`hidden` 판정 조건 보존 |
+| AC-6 입력 경로 수렴 | ✅ | 카드 클릭·키보드·Serial·`window.habitToy`가 모두 동일한 `pressButton`으로 수렴 |
+
+`connect()`에 `port.writable` null 가드를 추가했다. 원본은 곧바로 `getWriter()`를 불렀고, 쓰기 스트림이 없는 포트에서 예외가 났다.
