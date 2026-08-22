@@ -18,11 +18,11 @@
 기준 자료:
 
 - 디자인 시스템: [`DESIGN.md`](./DESIGN.md)
-- 오늘 화면: [`docs/design/today-approved.png`](./docs/design/today-approved.png)
-- 기록 화면: [`docs/design/history-approved.png`](./docs/design/history-approved.png)
-- 돌아보기 화면: [`docs/design/reflection-approved.png`](./docs/design/reflection-approved.png)
-- 설정 화면: [`docs/design/settings-approved.png`](./docs/design/settings-approved.png)
-- 기능 계약: `README.md`, `Habit-Toy-App-Spec-v1.md`, 현재 `app.js`
+- 오늘 화면: [`design/today-approved.png`](./design/today-approved.png)
+- 기록 화면: [`design/history-approved.png`](./design/history-approved.png)
+- 돌아보기 화면: [`design/reflection-approved.png`](./design/reflection-approved.png)
+- 설정 화면: [`design/settings-approved.png`](./design/settings-approved.png)
+- 기능 계약: `../README.md`, `Habit-Toy-App-Spec-v1.md`, 현재 `app.js`
 
 승인 시안은 픽셀 복제 대상이 아니라 **정보 순서, 여백, 색 사용량, 아이콘 언어, 시각적 위계**의 기준이다. 실제 데이터 길이와 접근성 요구에 따라 줄바꿈과 높이는 유동적이어야 한다.
 
