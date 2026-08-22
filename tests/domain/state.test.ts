@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   applyActiveAssignments,
   completeActiveSession,
+  createDefaultState,
   getPendingMemoSessionIds,
   normalizeState,
   placeCategoryInSlot,
@@ -137,4 +138,18 @@ test("normalizeState repairs states written by older builds", () => {
   assert.equal(normalized.reflectionRange, 30);
   assert.equal(normalized.aiReflection, null);
   assert.ok(normalized.updatedAt);
+  assert.equal(normalized.categories[0]?.goalType, "daily", "records from before goal types were all daily");
+});
+
+test("a short-lived weeklyGoal field migrates into a weekly goal type", () => {
+  const interim = {
+    ...createDefaultState(),
+    categories: [
+      { id: "a", name: "A", color: "#123456", goal: 0, weeklyGoal: 300, status: "active" },
+      { id: "b", name: "B", color: "#123456", goal: 30, weeklyGoal: 300, status: "active" },
+    ],
+  } as unknown as AppState;
+  const normalized = normalizeState(interim);
+  assert.deepEqual(normalized.categories.map((c) => [c.goalType, c.goal]), [["weekly", 300], ["daily", 30]]);
+  assert.ok(!("weeklyGoal" in (normalized.categories[0] as object)));
 });

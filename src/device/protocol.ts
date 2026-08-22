@@ -1,5 +1,6 @@
 import { safeColor } from "../domain/format.ts";
-import { categoryById, todayMinutes } from "../domain/stats.ts";
+import { goalStanding } from "../domain/goal.ts";
+import { categoryById } from "../domain/stats.ts";
 import type { AppState } from "../domain/types.ts";
 
 export const SERIAL_BAUD_RATE = 115200;
@@ -16,7 +17,6 @@ export interface LedPayload {
   buttons: LedButton[];
 }
 
-const DEFAULT_GOAL_MINUTES = 60;
 
 /** Pure so every accepted and rejected board line can be covered by a test. */
 export function parseHardwareLine(line: string): number | null {
@@ -39,11 +39,10 @@ export function buildLedPayload(state: AppState): LedPayload {
     type: "led",
     buttons: state.assignments.map((id, index) => {
       const category = categoryById(state, id);
-      const goal = category?.goal || DEFAULT_GOAL_MINUTES;
       return {
         index: index + 1,
         color: safeColor(category?.color),
-        progress: Math.min(1, todayMinutes(state, id) / goal),
+        progress: category ? goalStanding(state, category).ratio : 0,
         running: state.activeSession?.categoryId === id,
       };
     }),

@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 
 import { safeColor } from "../domain/format.ts";
 import { isDuplicateCategoryName } from "../domain/state.ts";
-import type { AppState, Category } from "../domain/types.ts";
+import { GOAL_TYPE_LABEL } from "../domain/goal.ts";
+import type { AppState, Category, GoalType } from "../domain/types.ts";
 import type { CategoryDraft } from "../store/actions.ts";
 import { useDialog } from "../hooks/useDialog.ts";
 
@@ -16,8 +17,7 @@ interface CategoryDialogProps {
 
 const MAX_NAME_LENGTH = 20;
 const DEFAULT_COLOR = "#F1A75B";
-const DEFAULT_GOAL = "30";
-const DEFAULT_WEEKLY_GOAL = "150";
+const DEFAULT_GOAL: Record<GoalType, string> = { daily: "30", weekly: "150" };
 
 function validate(state: AppState, name: string, editingId: string | null): string {
   if (!name) return "활동 이름을 입력해주세요.";
@@ -29,8 +29,8 @@ function validate(state: AppState, name: string, editingId: string | null): stri
 export function CategoryDialog({ state, open, editing, onClose, onSave }: CategoryDialogProps) {
   const [name, setName] = useState("");
   const [color, setColor] = useState(DEFAULT_COLOR);
-  const [goal, setGoal] = useState(DEFAULT_GOAL);
-  const [weeklyGoal, setWeeklyGoal] = useState(DEFAULT_WEEKLY_GOAL);
+  const [goalType, setGoalType] = useState<GoalType>("daily");
+  const [goal, setGoal] = useState(DEFAULT_GOAL.daily);
   const [error, setError] = useState("");
   const nameInput = useRef<HTMLInputElement>(null);
   const ref = useDialog(open, onClose);
@@ -39,8 +39,9 @@ export function CategoryDialog({ state, open, editing, onClose, onSave }: Catego
     if (!open) return;
     setName(editing?.name ?? "");
     setColor(editing ? safeColor(editing.color) : DEFAULT_COLOR);
-    setGoal(editing ? String(Math.max(0, Math.min(720, Number(editing.goal) || 0))) : DEFAULT_GOAL);
-    setWeeklyGoal(editing ? String(Math.max(0, Number(editing.weeklyGoal) || 0)) : DEFAULT_WEEKLY_GOAL);
+    const type: GoalType = editing?.goalType === "weekly" ? "weekly" : "daily";
+    setGoalType(type);
+    setGoal(editing ? String(Math.max(0, Number(editing.goal) || 0)) : DEFAULT_GOAL[type]);
     setError("");
     const frame = requestAnimationFrame(() => {
       nameInput.current?.focus();
@@ -59,7 +60,7 @@ export function CategoryDialog({ state, open, editing, onClose, onSave }: Catego
       nameInput.current?.focus();
       return;
     }
-    onSave({ name: trimmed, color, goal: Number(goal), weeklyGoal: Number(weeklyGoal) }, editing?.id ?? null);
+    onSave({ name: trimmed, color, goal: Number(goal), goalType }, editing?.id ?? null);
   };
 
   return (
@@ -89,16 +90,29 @@ export function CategoryDialog({ state, open, editing, onClose, onSave }: Catego
           />
         </label>
         <p className="field-error" id="category-name-error" role="alert" aria-live="polite" hidden={!error}>{error}</p>
-        <div className="inline-fields">
-          <label>색상<input type="color" value={color} onChange={(event) => setColor(event.target.value)} /></label>
-          <label>
-            일일 목표(분)
-            <input type="number" min={0} max={720} value={goal} onChange={(event) => setGoal(event.target.value)} />
-          </label>
-        </div>
+        <label>색상<input type="color" value={color} onChange={(event) => setColor(event.target.value)} /></label>
+        <fieldset className="goal-type">
+          <legend>목표 단위</legend>
+          <div className="segmented" role="group" aria-label="목표 단위">
+            {(["daily", "weekly"] as GoalType[]).map((type) => (
+              <button
+                key={type}
+                type="button"
+                className={goalType === type ? "selected" : undefined}
+                aria-pressed={goalType === type}
+                onClick={() => {
+                  setGoalType(type);
+                  if (!editing || editing.goalType !== type) setGoal(DEFAULT_GOAL[type]);
+                }}
+              >
+                {GOAL_TYPE_LABEL[type]}
+              </button>
+            ))}
+          </div>
+        </fieldset>
         <label>
-          주간 목표(분) <span>0이면 없음</span>
-          <input type="number" min={0} max={5040} step={10} value={weeklyGoal} onChange={(event) => setWeeklyGoal(event.target.value)} />
+          {goalType === "weekly" ? "한 주 목표(분)" : "하루 목표(분)"} <span>0이면 없음</span>
+          <input type="number" min={0} max={goalType === "weekly" ? 5040 : 720} step={goalType === "weekly" ? 10 : 5} value={goal} onChange={(event) => setGoal(event.target.value)} />
         </label>
         <button className="button full" value="default" type="submit">{editing ? "변경사항 저장" : "활동 추가"}</button>
       </form>

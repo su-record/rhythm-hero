@@ -19,9 +19,9 @@ function state(sessions: Session[], overrides: Partial<AppState> = {}): AppState
     profile: null,
     companion: { voice: true, idleMinutes: 90 },
     categories: [
-      { id: "move", name: "운동", color: "#FF5D52", goal: 30, weeklyGoal: 120, status: "active" },
-      { id: "read", name: "독서", color: "#20D68A", goal: 60, weeklyGoal: 0, status: "active" },
-      { id: "old", name: "보관", color: "#5B70FF", goal: 10, weeklyGoal: 60, status: "archived" },
+      { id: "move", name: "운동", color: "#FF5D52", goal: 120, goalType: "weekly", status: "active" },
+      { id: "read", name: "독서", color: "#20D68A", goal: 60, goalType: "daily", status: "active" },
+      { id: "old", name: "보관", color: "#5B70FF", goal: 60, goalType: "weekly", status: "archived" },
     ],
     assignments: ["move", "read"],
     sessions, activeSession: null, historyRange: 7, reflectionRange: 7, aiReflection: null, updatedAt: SAT.toISOString(),
@@ -48,7 +48,7 @@ test("weekly minutes sum this week only and include a running session today", ()
   assert.equal(Math.round(weekMinutes(running, "move", SAT)), 100, "40 from Friday + 60 running now; last week's 99 is out");
 });
 
-test("progress lists only live categories with a weekly goal, ranked by ratio", () => {
+test("progress lists only live weekly-type categories, ranked by ratio", () => {
   const progress = weeklyProgress(state([session("a", "move", 2, 9, 60)]), SAT);
   assert.deepEqual(progress.map((item) => item.category.id), ["move"]);
   assert.equal(progress[0]?.ratio, 0.5);
@@ -62,5 +62,5 @@ test("meeting the goal marks it done and the summary counts it", () => {
   assert.equal(progress[0]?.ratio, 1);
   assert.match(describeWeek(progress, SAT), /전부 채웠어요/);
   assert.match(describeWeek(weeklyProgress(state([]), SAT), SAT), /0\/1 채움 · 2일 남음/);
-  assert.match(describeWeek([], SAT), /주간 목표를 정하면/);
+  assert.match(describeWeek([], SAT), /한 주 단위 활동을 만들면/);
 });

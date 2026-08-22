@@ -1,11 +1,12 @@
+import { dailyShareOfGoal } from "../domain/goal.ts";
 import { formatDayNumber, formatMinutes, formatMonthDay, formatWeekdayNarrow, safeColor } from "../domain/format.ts";
 import { minutesFor, sessionsForDay } from "../domain/stats.ts";
 import { sameLocalDay } from "../domain/time.ts";
 import type { AppState, Category, PeriodRange } from "../domain/types.ts";
 
-function heatLevel(minutes: number, goal: number): string {
+function heatLevel(minutes: number, dailyGoal: number): string {
   if (minutes === 0) return "";
-  const ratio = goal ? minutes / goal : minutes / 60;
+  const ratio = dailyGoal ? minutes / dailyGoal : minutes / 60;
   if (ratio < 0.3) return "l1";
   if (ratio < 0.65) return "l2";
   if (ratio < 1) return "l3";
@@ -46,7 +47,7 @@ export function Heatmap({ state, days, range }: HeatmapProps) {
               return (
                 <span
                   key={day.getTime()}
-                  className={`heat-cell ${heatLevel(minutes, category.goal)} ${sameLocalDay(day) ? "today" : ""}`.replace(/\s+/g, " ").trim()}
+                  className={`heat-cell ${heatLevel(minutes, dailyShareOfGoal(category))} ${sameLocalDay(day) ? "today" : ""}`.replace(/\s+/g, " ").trim()}
                   style={{ ["--category" as string]: safeColor(category.color) }}
                   title={label}
                   role="img"

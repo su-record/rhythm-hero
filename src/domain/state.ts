@@ -30,10 +30,10 @@ const SEED: Array<[number, string, number, number, number]> = [
 
 export function createDefaultState(): AppState {
   const categories: Category[] = [
-    { id: "move", name: "운동", color: DEFAULT_CATEGORY_COLORS.move, goal: 60, weeklyGoal: 240, status: "active" },
-    { id: "read", name: "독서", color: DEFAULT_CATEGORY_COLORS.read, goal: 60, weeklyGoal: 300, status: "active" },
-    { id: "music", name: "음악", color: DEFAULT_CATEGORY_COLORS.music, goal: 45, weeklyGoal: 150, status: "active" },
-    { id: "project", name: "프로젝트", color: DEFAULT_CATEGORY_COLORS.project, goal: 90, weeklyGoal: 360, status: "active" },
+    { id: "move", name: "운동", color: DEFAULT_CATEGORY_COLORS.move, goal: 60, goalType: "daily", status: "active" },
+    { id: "read", name: "독서", color: DEFAULT_CATEGORY_COLORS.read, goal: 60, goalType: "daily", status: "active" },
+    { id: "music", name: "음악", color: DEFAULT_CATEGORY_COLORS.music, goal: 150, goalType: "weekly", status: "active" },
+    { id: "project", name: "프로젝트", color: DEFAULT_CATEGORY_COLORS.project, goal: 360, goalType: "weekly", status: "active" },
   ];
   const sessions: Session[] = SEED.map(([daysAgo, categoryId, hour, minute, duration], index) => ({
     id: `seed-${index}`,
@@ -64,7 +64,13 @@ function normalizeRange(value: unknown, fallback: PeriodRange): PeriodRange {
 export function normalizeState(parsed: AppState): AppState {
   parsed.categories.forEach((category) => {
     if (!category.status) category.status = "active";
-    category.weeklyGoal = Number.isFinite(category.weeklyGoal) ? Math.max(0, Number(category.weeklyGoal)) : 0;
+    const legacy = category as Category & { weeklyGoal?: number };
+    if (legacy.goalType !== "weekly" && legacy.goalType !== "daily") {
+      // A short-lived build stored a separate weeklyGoal; a week-only goal becomes a weekly type.
+      legacy.goalType = legacy.weeklyGoal && !legacy.goal ? "weekly" : "daily";
+      if (legacy.goalType === "weekly") legacy.goal = legacy.weeklyGoal ?? 0;
+    }
+    delete legacy.weeklyGoal;
     const legacyColor = LEGACY_DEFAULT_CATEGORY_COLORS[category.id as keyof typeof LEGACY_DEFAULT_CATEGORY_COLORS];
     if (legacyColor && String(category.color).toUpperCase() === legacyColor) {
       category.color = DEFAULT_CATEGORY_COLORS[category.id as keyof typeof DEFAULT_CATEGORY_COLORS];

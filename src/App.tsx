@@ -288,9 +288,9 @@ export function App() {
             commit((current) => actions.setCategoryGoal(current, id, goal));
             showToast(`${categoryById(state, id)?.name ?? ""} 목표를 저장했어요.`);
           }}
-          onWeeklyGoalChange={(id, goal) => {
-            commit((current) => actions.setCategoryWeeklyGoal(current, id, goal));
-            showToast(`${categoryById(state, id)?.name ?? ""} 주간 목표를 저장했어요.`);
+          onGoalTypeChange={(id, goalType) => {
+            commit((current) => actions.setCategoryGoalType(current, id, goalType));
+            showToast(`${categoryById(state, id)?.name ?? ""}은 이제 ${goalType === "weekly" ? "한 주" : "하루"} 단위예요.`);
           }}
           onEditCategory={dialogs.openCategoryEditor}
           onArchiveCategory={archiveCategory}

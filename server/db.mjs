@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS categories (
   name        TEXT NOT NULL,
   color       TEXT NOT NULL,
   goal        INTEGER NOT NULL DEFAULT 0,
-  weekly_goal INTEGER NOT NULL DEFAULT 0,
+  goal_type   TEXT NOT NULL DEFAULT 'daily',
   status      TEXT NOT NULL DEFAULT 'active',
   PRIMARY KEY (client_id, id)
 );
@@ -59,6 +59,9 @@ export function openDatabase(dataDir) {
   const db = new DatabaseSync(join(dataDir, "rhythm-hero.db"));
   db.exec("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;");
   db.exec(SCHEMA);
+  // A database from the short-lived weekly_goal build gains the column it lacks.
+  const columns = db.prepare("PRAGMA table_info(categories)").all().map((row) => row.name);
+  if (!columns.includes("goal_type")) db.exec("ALTER TABLE categories ADD COLUMN goal_type TEXT NOT NULL DEFAULT 'daily'");
 
   const statements = {
     upsertClient: db.prepare(`
@@ -69,7 +72,7 @@ export function openDatabase(dataDir) {
         profile_created_at = excluded.profile_created_at, extras_json = excluded.extras_json, updated_at = excluded.updated_at`),
     clearCategories: db.prepare("DELETE FROM categories WHERE client_id = ?"),
     clearSessions: db.prepare("DELETE FROM sessions WHERE client_id = ?"),
-    insertCategory: db.prepare(`INSERT INTO categories (client_id, id, position, name, color, goal, weekly_goal, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`),
+    insertCategory: db.prepare(`INSERT INTO categories (client_id, id, position, name, color, goal, goal_type, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`),
     insertSession: db.prepare(`
       INSERT INTO sessions (client_id, id, position, category_id, started_at, ended_at, source, status, memo, memo_capture_state, memo_capture_created_at, memo_updated_at, updated_at, deleted_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`),
@@ -89,7 +92,7 @@ export function openDatabase(dataDir) {
       statements.clearCategories.run(clientId);
       statements.clearSessions.run(clientId);
       state.categories.forEach((category, position) => {
-        statements.insertCategory.run(clientId, category.id, position, category.name, category.color, category.goal ?? 0, category.weeklyGoal ?? 0, category.status ?? "active");
+        statements.insertCategory.run(clientId, category.id, position, category.name, category.color, category.goal ?? 0, category.goalType === "weekly" ? "weekly" : "daily", category.status ?? "active");
       });
       state.sessions.forEach((session, position) => {
         statements.insertSession.run(
@@ -111,7 +114,7 @@ export function openDatabase(dataDir) {
     const extras = JSON.parse(client.extras_json);
     const categories = statements.getCategories.all(clientId).map((row) => {
       const category = { id: row.id, name: row.name, color: row.color, goal: row.goal, status: row.status };
-      if (row.weekly_goal > 0) category.weeklyGoal = row.weekly_goal;
+      if (row.goal_type === "weekly") category.goalType = "weekly";
       return category;
     });
     const sessions = statements.getSessions.all(clientId).map((row) => {

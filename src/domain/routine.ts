@@ -1,3 +1,4 @@
+import { goalTypeOf } from "./goal.ts";
 import { categoryById, minutesFor, sessionsForDay } from "./stats.ts";
 import { dayBounds, overlapMsForDay, recentDays, sameLocalDay } from "./time.ts";
 import type { AppState, Category, DaySession } from "./types.ts";
@@ -86,7 +87,8 @@ export function buildDayCard(state: AppState, day: Date, now: Date = new Date())
   const shares = state.categories
     .map((category) => {
       const minutes = minutesFor(category.id, sessions) + (state.activeSession?.categoryId === category.id ? activeMinutes : 0);
-      return { category, minutes, goalRatio: category.goal ? Math.min(1, minutes / category.goal) : null };
+      const dailyGoal = goalTypeOf(category) === "daily" ? category.goal : 0;
+      return { category, minutes, goalRatio: dailyGoal ? Math.min(1, minutes / dailyGoal) : null };
     })
     .filter((share) => share.minutes > 0)
     .sort((left, right) => right.minutes - left.minutes);

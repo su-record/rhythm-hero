@@ -2,7 +2,7 @@ import { completeActiveSession, createDefaultState, isDuplicateCategoryName, ran
 import { categoryById } from "../domain/stats.ts";
 import { safeColor } from "../domain/format.ts";
 import { endTimeFor } from "../domain/time.ts";
-import type { AppState, Category, CompanionSettings, MemoCaptureState, PeriodRange, Profile, Session, SessionSource } from "../domain/types.ts";
+import type { AppState, Category, CompanionSettings, GoalType, MemoCaptureState, PeriodRange, Profile, Session, SessionSource } from "../domain/types.ts";
 
 export { isDuplicateCategoryName };
 
@@ -133,44 +133,50 @@ export interface CategoryDraft {
   name: string;
   color: string;
   goal: number;
-  weeklyGoal: number;
+  goalType: GoalType;
 }
 
 const MAX_GOAL_MINUTES = 720;
-const MAX_WEEKLY_GOAL_MINUTES = 7 * MAX_GOAL_MINUTES;
 
-function clampWeekly(value: unknown): number {
-  return Math.max(0, Math.min(MAX_WEEKLY_GOAL_MINUTES, Number(value) || 0));
+/** A day holds at most 720 goal minutes; a week, seven of those. */
+export function clampGoal(value: unknown, goalType: GoalType): number {
+  const limit = goalType === "weekly" ? MAX_GOAL_MINUTES * 7 : MAX_GOAL_MINUTES;
+  return Math.max(0, Math.min(limit, Number(value) || 0));
 }
 
 /** Editing a Category invalidates the stored AI headline: its evidence moved. */
 export function upsertCategory(state: AppState, draft: CategoryDraft, editingId: string | null): { state: AppState; categoryId: string } {
   const color = safeColor(draft.color);
-  const goal = Math.max(0, Math.min(MAX_GOAL_MINUTES, Number(draft.goal) || 0));
-  const weeklyGoal = clampWeekly(draft.weeklyGoal);
+  const goalType: GoalType = draft.goalType === "weekly" ? "weekly" : "daily";
+  const goal = clampGoal(draft.goal, goalType);
   if (editingId) {
     return {
       state: {
         ...state,
         aiReflection: null,
-        categories: state.categories.map((item) => (item.id === editingId ? { ...item, name: draft.name, color, goal, weeklyGoal } : item)),
+        categories: state.categories.map((item) => (item.id === editingId ? { ...item, name: draft.name, color, goal, goalType } : item)),
       },
       categoryId: editingId,
     };
   }
-  const category: Category = { id: randomId(), name: draft.name, color, goal, weeklyGoal, status: "active" };
+  const category: Category = { id: randomId(), name: draft.name, color, goal, goalType, status: "active" };
   return { state: { ...state, categories: [...state.categories, category] }, categoryId: category.id };
 }
 
 export function setCategoryGoal(state: AppState, id: string, goal: number): AppState {
-  const clamped = Math.max(0, Math.min(MAX_GOAL_MINUTES, Number(goal) || 0));
-  return { ...state, categories: state.categories.map((item) => (item.id === id ? { ...item, goal: clamped } : item)) };
+  return {
+    ...state,
+    categories: state.categories.map((item) => (item.id === id ? { ...item, goal: clampGoal(goal, item.goalType === "weekly" ? "weekly" : "daily") } : item)),
+  };
 }
 
-export function setCategoryWeeklyGoal(state: AppState, id: string, weeklyGoal: number): AppState {
-  const clamped = clampWeekly(weeklyGoal);
-  return { ...state, categories: state.categories.map((item) => (item.id === id ? { ...item, weeklyGoal: clamped } : item)) };
+export function setCategoryGoalType(state: AppState, id: string, goalType: GoalType): AppState {
+  return {
+    ...state,
+    categories: state.categories.map((item) => (item.id === id ? { ...item, goalType, goal: clampGoal(item.goal, goalType) } : item)),
+  };
 }
+
 
 export function setHistoryRange(state: AppState, range: PeriodRange): AppState {
   return state.historyRange === range ? state : { ...state, historyRange: range };

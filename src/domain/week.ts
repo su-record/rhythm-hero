@@ -45,13 +45,13 @@ export function daysLeftInWeek(now: Date = new Date()): number {
   return 7 - weekDaysSoFar(now).length + 1;
 }
 
-/** Only categories with a weekly goal appear; the rest have nothing to report. */
+/** Only weekly-type categories appear; daily ones report on the day. */
 export function weeklyProgress(state: AppState, now: Date = new Date()): WeeklyProgress[] {
   const left = daysLeftInWeek(now);
   return state.categories
-    .filter((category) => category.status !== "archived" && (category.weeklyGoal ?? 0) > 0)
+    .filter((category) => category.status !== "archived" && category.goalType === "weekly" && category.goal > 0)
     .map((category) => {
-      const goal = category.weeklyGoal ?? 0;
+      const goal = category.goal;
       const minutes = weekMinutes(state, category.id, now);
       const remaining = Math.max(0, goal - minutes);
       return { category, minutes, goal, ratio: Math.min(1, minutes / goal), perDayLeft: remaining / left, done: remaining === 0 };
@@ -60,7 +60,7 @@ export function weeklyProgress(state: AppState, now: Date = new Date()): WeeklyP
 }
 
 export function describeWeek(progress: WeeklyProgress[], now: Date = new Date()): string {
-  if (!progress.length) return "주간 목표를 정하면 여기서 한 주를 따라가요.";
+  if (!progress.length) return "한 주 단위 활동을 만들면 여기서 따라가요.";
   const done = progress.filter((item) => item.done).length;
   const left = daysLeftInWeek(now);
   if (done === progress.length) return "이번 주 목표를 전부 채웠어요.";

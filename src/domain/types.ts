@@ -4,14 +4,16 @@ export type MemoCaptureState = "pending" | "saved" | "skipped";
 export type SessionSource = "device" | "app";
 export type PeriodRange = 7 | 30;
 
+export type GoalType = "daily" | "weekly";
+
 export interface Category {
   id: string;
   name: string;
   color: string;
-  /** Daily goal in minutes; 0 means none. */
+  /** Minutes per day or per week depending on goalType; 0 means no goal. */
   goal: number;
-  /** Weekly goal in minutes; 0 or missing means none. */
-  weeklyGoal?: number;
+  /** Missing means daily, which is what every record before goal types assumed. */
+  goalType?: GoalType;
   status: CategoryStatus;
 }
 

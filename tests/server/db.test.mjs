@@ -10,8 +10,8 @@ const sampleState = {
   profile: { name: "수", toy: "bouncer", toyName: "통통", createdAt: "2026-08-22T01:00:00.000Z" },
   companion: { voice: true, idleMinutes: 90 },
   categories: [
-    { id: "read", name: "독서", color: "#20D68A", goal: 60, weeklyGoal: 300, status: "active" },
-    { id: "move", name: "운동", color: "#FF5D52", goal: 30, weeklyGoal: 0, status: "archived" },
+    { id: "read", name: "독서", color: "#20D68A", goal: 300, goalType: "weekly", status: "active" },
+    { id: "move", name: "운동", color: "#FF5D52", goal: 30, status: "archived" },
   ],
   assignments: ["read", "move"],
   sessions: [
@@ -38,9 +38,7 @@ async function withDatabase(run) {
 
 test("a state round-trips through normalised tables without losing a field", () => withDatabase((db) => {
   db.saveState("client-a", sampleState);
-  const loaded = db.loadState("client-a");
-  const { weeklyGoal: _none, ...moveWithoutEmptyGoal } = sampleState.categories[1];
-  assert.deepEqual(loaded, { ...sampleState, categories: [sampleState.categories[0], moveWithoutEmptyGoal] }, "a zero weekly goal means none and is not echoed back");
+  assert.deepEqual(db.loadState("client-a"), sampleState);
 }));
 
 test("a missing client is null, never an empty state that could wipe a device", () => withDatabase((db) => {

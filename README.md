@@ -69,7 +69,7 @@ npm run build:icons
 - 홈 탭 → `앱에서 기록 시작`: 현재 타이머 시작
 - 홈 탭 상단: 장난감 캐릭터와 하루 카드 덱. 카드를 옆으로 넘기면 지난 날을 본다
 - 조용한 시간이 길어지면 장난감이 말을 걸고(음성), 보드 LED가 숨을 쉰다. `나` 탭에서 목소리와 대기 시간을 바꾼다
-- 나: 장난감·이름 바꾸기, Category 추가·보관, 삭제 기록 복구, 목표 수정, JSON 내보내기
+- 나: 장난감·이름 바꾸기, Category 추가·보관, 삭제 기록 복구, 목표 수정(활동마다 **하루** 또는 **한 주** 단위), JSON 내보내기
 - 나 → `USB 연결`: Chrome Web Serial로 NU-40 DK 개발보드 연결 (펌웨어: `docs/firmware/nu40-rhythm-hero/`)
 
 기록은 브라우저 `localStorage`에 저장됩니다. 현재 버전은 해커톤 H0 범위를 구현한 프론트엔드 프로토타입이며, 실제 기기는 `window.habitToy.pressButton(1..4)` 브리지를 BLE/Wi-Fi 이벤트 수신기로 교체해 연결할 수 있습니다. 이 브리지는 React 트리 밖에서 스토어에 직접 접근합니다.
@@ -82,12 +82,14 @@ sqlite3 .habit-toy-data/rhythm-hero.db 'select name, toy_name, updated_at from c
 
 ## OpenAI 리플렉션 연결
 
-OpenAI API 키는 브라우저에 넣지 않습니다. 프로젝트 루트의 [`.env.example`](.env.example)을 참고해 PowerShell 환경 변수로만 설정한 뒤 서버를 시작하세요.
+OpenAI API 키는 브라우저에 넣지 않습니다. 프로젝트 루트에 `.env`를 만들면(`.env.example` 참고) 서버가 시작할 때 읽습니다. 셸 환경 변수가 있으면 그쪽이 우선합니다.
 
-```powershell
-$env:OPENAI_API_KEY="your_key_here"
-npm start
 ```
+OPENAI_API_KEY=sk-...
+OPENAI_MODEL=gpt-5.6-terra
+```
+
+`.env`는 `.gitignore`에 포함되어 있습니다.
 
 돌아보기 탭의 `AI로 새로 만들기`는 `/api/reflection`을, 장난감의 발화는 `/api/companion`을 호출합니다. 발화는 사실(장난감·사용자 이름, 시간대, 마지막 활동, 조용한 시간, 제안할 활동과 분)만 보내고, 서버는 답변이 짧은 한 문장이며 비난 어휘가 없을 때만 통과시킵니다. 키가 없으면 앱에 내장된 템플릿 대사가 대신 나옵니다. 서버는 계산된 시간 통계만 전송하고, 생성된 제목이 선택한 근거 카드와 연결되는지 검증합니다. 키가 없거나 AI 요청이 실패해도 로컬 근거 기반 리플렉션과 모든 기록 기능은 계속 동작합니다.
 

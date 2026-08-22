@@ -2,7 +2,7 @@ import { useMemo } from "react";
 
 import { buildDayCards, deriveRoutine, describeRoutine } from "../domain/routine.ts";
 import { describeWeek, weeklyProgress } from "../domain/week.ts";
-import { categoryById, todayMinutes } from "../domain/stats.ts";
+import { categoryById } from "../domain/stats.ts";
 import type { AppState, Session } from "../domain/types.ts";
 import { ButtonRow } from "../components/ButtonRow.tsx";
 import { MemoInbox } from "../components/MemoInbox.tsx";
@@ -33,7 +33,7 @@ export function TodayView({ state, active, tick, pendingMemos, companionLine, ..
 
   // The tick only re-runs the arithmetic; the cards themselves are never rebuilt.
   const { buttons, dayCards, week } = useMemo(() => ({
-    buttons: state.assignments.map((id) => ({ category: categoryById(state, id), minutes: todayMinutes(state, id) })),
+    buttons: state.assignments.map((id) => categoryById(state, id)),
     dayCards: buildDayCards(state, DECK_DAYS),
     week: weeklyProgress(state),
   }), [state, tick]);
@@ -64,7 +64,7 @@ export function TodayView({ state, active, tick, pendingMemos, companionLine, ..
           <button className="edit-link" type="button" onClick={handlers.onEditActive4}>편집</button>
         </div>
       </section>
-      <ButtonRow buttons={buttons} runningId={state.activeSession?.categoryId ?? null} onPress={handlers.onPressButton} />
+      <ButtonRow state={state} buttons={buttons} runningId={state.activeSession?.categoryId ?? null} onPress={handlers.onPressButton} />
 
       <WeekGoals progress={week} summary={describeWeek(week)} onEditGoals={handlers.onEditGoals} />
 

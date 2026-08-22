@@ -2,7 +2,9 @@ import { formatMinutes, safeColor } from "../domain/format.ts";
 import { allCompleted, categoryById, restorableSessions, selectableCategories } from "../domain/stats.ts";
 import { durationMs, localDateInput } from "../domain/time.ts";
 import type { AppState } from "../domain/types.ts";
+import { GOAL_TYPE_LABEL, goalTypeOf } from "../domain/goal.ts";
 import { TOY_COPY, toyArt } from "../domain/profile.ts";
+import type { GoalType } from "../domain/types.ts";
 import { ActivityIcon } from "../components/ActivityIcon.tsx";
 import { InstallPanel } from "../components/InstallPanel.tsx";
 import type { InstallState } from "../pwa/useInstallPrompt.ts";
@@ -19,7 +21,7 @@ interface SettingsViewProps {
   onEditProfile: () => void;
   onAssign: (slot: number, categoryId: string) => void;
   onGoalChange: (categoryId: string, goal: number) => void;
-  onWeeklyGoalChange: (categoryId: string, goal: number) => void;
+  onGoalTypeChange: (categoryId: string, goalType: GoalType) => void;
   onEditCategory: (id: string) => void;
   onArchiveCategory: (id: string) => void;
   onAddCategory: () => void;
@@ -88,7 +90,7 @@ export function SettingsView({ state, active, deviceConnected, installState, ...
       </section>
 
       <section className="settings-section">
-        <div className="section-heading compact"><div><h2>목표</h2><p>하루와 한 주. 둘 다 선택 사항이며, 미달은 실패가 아닙니다.</p></div></div>
+        <div className="section-heading compact"><div><h2>목표</h2><p>활동마다 하루 또는 한 주 단위로 정해요. 선택 사항이며, 미달은 실패가 아닙니다.</p></div></div>
         <div className="goal-list">
           {state.categories.map((category) => (
             <div className="goal-row" key={category.id} style={{ ["--category" as string]: safeColor(category.color) }}>
@@ -96,31 +98,32 @@ export function SettingsView({ state, active, deviceConnected, installState, ...
                 <ActivityIcon category={category} size="activity-icon-list" />
                 <span>{category.name}</span>
               </label>
-              <span className="goal-control">
-                <input
-                  id={`goal-${category.id}`}
-                  type="number"
-                  inputMode="numeric"
-                  min={0}
-                  max={MAX_GOAL_MINUTES}
-                  defaultValue={category.goal || 0}
-                  aria-label={`${category.name} 하루 목표`}
-                  onChange={(event) => handlers.onGoalChange(category.id, Number(event.target.value))}
-                />
-                <span>분/일</span>
+              <span className="segmented goal-type-toggle" role="group" aria-label={`${category.name} 목표 단위`}>
+                {(["daily", "weekly"] as GoalType[]).map((type) => (
+                  <button
+                    key={type}
+                    type="button"
+                    className={goalTypeOf(category) === type ? "selected" : undefined}
+                    aria-pressed={goalTypeOf(category) === type}
+                    onClick={() => handlers.onGoalTypeChange(category.id, type)}
+                  >
+                    {GOAL_TYPE_LABEL[type]}
+                  </button>
+                ))}
               </span>
               <span className="goal-control">
                 <input
+                  id={`goal-${category.id}`}
+                  key={`${category.id}-${goalTypeOf(category)}`}
                   type="number"
                   inputMode="numeric"
                   min={0}
-                  max={MAX_GOAL_MINUTES * 7}
-                  step={10}
-                  defaultValue={category.weeklyGoal || 0}
-                  aria-label={`${category.name} 주간 목표`}
-                  onChange={(event) => handlers.onWeeklyGoalChange(category.id, Number(event.target.value))}
+                  max={goalTypeOf(category) === "weekly" ? MAX_GOAL_MINUTES * 7 : MAX_GOAL_MINUTES}
+                  defaultValue={category.goal || 0}
+                  aria-label={`${category.name} ${GOAL_TYPE_LABEL[goalTypeOf(category)]} 목표`}
+                  onChange={(event) => handlers.onGoalChange(category.id, Number(event.target.value))}
                 />
-                <span>분/주</span>
+                <span>{goalTypeOf(category) === "weekly" ? "분/주" : "분/일"}</span>
               </span>
             </div>
           ))}

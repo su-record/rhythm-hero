@@ -5,6 +5,9 @@ import { join, normalize, relative, resolve } from "node:path";
 import { mimeTypeFor } from "./scripts/mime.mjs";
 import { openDatabase } from "./server/db.mjs";
 
+// A .env beside the server is enough; shell variables still win over it.
+try { process.loadEnvFile(); } catch { /* no .env: keys come from the shell or stay unset */ }
+
 const root = process.cwd();
 const dataRoot = process.env.HABIT_TOY_DATA_DIR ? resolve(process.env.HABIT_TOY_DATA_DIR) : join(root, ".habit-toy-data");
 // Serving the build output keeps sources, configs and tests unreachable by construction.
@@ -27,6 +30,22 @@ function readJson(request) {
     });
     request.on("error", reject);
   });
+}
+
+/* The REST payload has no output_text convenience field; the text sits in
+   output[].content[]. Models also like to wrap JSON in a code fence. */
+function responseText(payload) {
+  if (typeof payload?.output_text === "string") return payload.output_text;
+  return (payload?.output ?? [])
+    .flatMap((item) => item?.content ?? [])
+    .filter((part) => part?.type === "output_text" && typeof part.text === "string")
+    .map((part) => part.text)
+    .join("");
+}
+
+function parseJsonReply(payload) {
+  const text = responseText(payload).trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
+  return JSON.parse(text);
 }
 
 function validFacts(value) {
@@ -82,7 +101,7 @@ async function createReflection(request, response) {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
       body: JSON.stringify({
-        model: process.env.OPENAI_MODEL || "gpt-5.6",
+        model: process.env.OPENAI_MODEL || "gpt-5.6-terra",
         store: false,
         instructions: "You write a single, gentle Korean headline for a personal time-tracking reflection. Use only the supplied facts. Do not invent numbers, causes, diagnoses, advice, or judgments. Return JSON only: {\"factIndex\": number, \"headline\": string}. The headline must be under 45 Korean characters and must not contain a number.",
         input: JSON.stringify({ facts }),
@@ -94,7 +113,7 @@ async function createReflection(request, response) {
       return sendJson(response, 502, { error: "Reflection API request failed" });
     }
     let parsed;
-    try { parsed = JSON.parse(payload.output_text); } catch { return sendJson(response, 502, { error: "Reflection API returned invalid output" }); }
+    try { parsed = parseJsonReply(payload); } catch { return sendJson(response, 502, { error: "Reflection API returned invalid output" }); }
     if (!Number.isInteger(parsed.factIndex) || parsed.factIndex < 0 || parsed.factIndex >= facts.length || typeof parsed.headline !== "string" || parsed.headline.length < 1 || parsed.headline.length > 90 || /\d/.test(parsed.headline)) {
       return sendJson(response, 502, { error: "Reflection API returned unsafe output" });
     }
@@ -127,7 +146,7 @@ async function createCompanionLine(request, response) {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
       body: JSON.stringify({
-        model: process.env.OPENAI_MODEL || "gpt-5.6",
+        model: process.env.OPENAI_MODEL || "gpt-5.6-terra",
         store: false,
         instructions: [
           `You are ${facts.toyName}, a small spiky toy that lives on ${facts.userName}'s desk and records their time with four buttons.`,
@@ -145,7 +164,10 @@ async function createCompanionLine(request, response) {
       return sendJson(response, 502, { error: "Companion API request failed" });
     }
     let parsed;
-    try { parsed = JSON.parse(payload.output_text); } catch { return sendJson(response, 502, { error: "Companion API returned invalid output" }); }
+    try { parsed = parseJsonReply(payload); } catch (error) {
+      console.error("Companion parse error", error.message, JSON.stringify(payload).slice(0, 600));
+      return sendJson(response, 502, { error: "Companion API returned invalid output" });
+    }
     const line = typeof parsed.line === "string" ? parsed.line.trim() : "";
     if (!line || line.length > 60 || BANNED_TONE.test(line)) return sendJson(response, 502, { error: "Companion API returned an unsafe line" });
     sendJson(response, 200, { line });

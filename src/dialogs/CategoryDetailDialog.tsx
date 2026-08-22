@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+import { dailyShareOfGoal } from "../domain/goal.ts";
 import { formatMinutes, formatMonthDay, formatStartTime, safeColor } from "../domain/format.ts";
 import { categoryById, categoryStats, minutesFor, sessionsForDay } from "../domain/stats.ts";
 import { durationMs, recentDays } from "../domain/time.ts";
@@ -9,9 +10,9 @@ import { useDialog } from "../hooks/useDialog.ts";
 const DETAIL_HEATMAP_DAYS = 28;
 const DETAIL_SESSION_LIMIT = 5;
 
-function heatLevel(minutes: number, goal: number): string {
+function heatLevel(minutes: number, dailyGoal: number): string {
   if (minutes === 0) return "";
-  const ratio = goal ? minutes / goal : minutes / 60;
+  const ratio = dailyGoal ? minutes / dailyGoal : minutes / 60;
   if (ratio < 0.3) return "l1";
   if (ratio < 0.65) return "l2";
   if (ratio < 1) return "l3";
@@ -86,7 +87,7 @@ export function CategoryDetailDialog({ state, category, onClose, onEdit, onAddTo
               return (
                 <span
                   key={day.getTime()}
-                  className={`detail-heat-cell ${heatLevel(minutes, category.goal)}`.trim()}
+                  className={`detail-heat-cell ${heatLevel(minutes, dailyShareOfGoal(category))}`.trim()}
                   style={{ ["--category" as string]: safeColor(category.color) }}
                   title={label}
                   role="img"

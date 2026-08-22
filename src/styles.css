@@ -724,6 +724,10 @@ textarea:focus-visible,
 .category-card.compact .activity-icon-button { width: 34px; height: 34px; margin-top: 14px; }
 .category-card.compact .category-name { font-size: 0.8rem; font-weight: 700; }
 .category-card.compact .category-time { margin-top: 0; font-size: 0.95rem; font-weight: 800; letter-spacing: -0.02em; }
+.category-card.compact .category-period { color: var(--ink-faint); font-size: 0.62rem; font-weight: 600; }
+.goal-type-toggle button { min-height: 34px; padding-inline: 10px; font-size: 0.74rem; }
+.goal-type { margin: 0 0 14px; padding: 0; border: 0; }
+.goal-type legend { margin-bottom: 7px; color: var(--ink-soft); font-size: 0.78rem; font-weight: 650; }
 .category-card.compact .progress-track { height: 4px; margin-top: 4px; }
 .category-card.compact.running .category-time { color: var(--category); }
 
