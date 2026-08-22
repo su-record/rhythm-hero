@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { appStore } from "../store/appStore.ts";
-import { SERIAL_BAUD_RATE, buildLedPayload, parseHardwareLine } from "./protocol.ts";
+import { SERIAL_BAUD_RATE, buildLedPayload, buildNudgePayload, parseHardwareLine } from "./protocol.ts";
 
 interface SerialState {
   port: SerialPort | null;
@@ -21,6 +21,8 @@ export interface SerialDevice {
   supported: boolean;
   connect: () => Promise<"connected" | "cancelled" | "failed" | "unsupported">;
   disconnect: () => Promise<void>;
+  /** Ask the board to breathe its LEDs (or stop) while the toy is talking. */
+  nudge: (active: boolean) => void;
 }
 
 export function useSerialDevice(onButton: (index: number) => void): SerialDevice {
@@ -99,25 +101,31 @@ export function useSerialDevice(onButton: (index: number) => void): SerialDevice
     }
   }, [supported, readLoop]);
 
+  const writeLine = useCallback((line: string) => {
+    const writer = device.current.writer;
+    if (!device.current.connected || !writer) return;
+    queue.current = queue.current
+      .then(() => writer.write(new TextEncoder().encode(`${line}\n`)))
+      .catch((error) => {
+        console.warn("Rhythm Hero serial write failed", error);
+        void disconnect();
+      });
+  }, [disconnect]);
+
   // Push LED state whenever it actually differs from what the board last saw.
   useEffect(() => {
     const send = () => {
-      if (!device.current.connected || !device.current.writer) return;
-      const payload = buildLedPayload(appStore.getState());
-      const fingerprint = JSON.stringify(payload);
+      if (!device.current.connected) return;
+      const fingerprint = JSON.stringify(buildLedPayload(appStore.getState()));
       if (fingerprint === device.current.lastPayload) return;
       device.current.lastPayload = fingerprint;
-      const writer = device.current.writer;
-      queue.current = queue.current
-        .then(() => writer.write(new TextEncoder().encode(`${fingerprint}\n`)))
-        .catch((error) => {
-          console.warn("Rhythm Hero serial write failed", error);
-          void disconnect();
-        });
+      writeLine(fingerprint);
     };
     send();
     return appStore.subscribe(send);
-  }, [connected, disconnect]);
+  }, [connected, writeLine]);
+
+  const nudge = useCallback((active: boolean) => writeLine(JSON.stringify(buildNudgePayload(active))), [writeLine]);
 
   useEffect(() => {
     if (!supported) return;
@@ -130,5 +138,5 @@ export function useSerialDevice(onButton: (index: number) => void): SerialDevice
 
   useEffect(() => () => void disconnect(), [disconnect]);
 
-  return { connected, supported, connect, disconnect };
+  return { connected, supported, connect, disconnect, nudge };
 }

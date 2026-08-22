@@ -17,6 +17,8 @@ import { useDialogState } from "./hooks/useDialogState.ts";
 import { useKeyboardButtons } from "./hooks/useKeyboardButtons.ts";
 import { useTicker } from "./hooks/useTicker.ts";
 import { useToast } from "./hooks/useToast.ts";
+import { useIdleNudge } from "./hooks/useIdleNudge.ts";
+import { primeSpeech, speak, stopSpeaking } from "./companion/speech.ts";
 import { usePostSessionPrompt } from "./hooks/usePostSessionPrompt.ts";
 import { BottomNav } from "./components/BottomNav.tsx";
 import { NowCard } from "./components/NowCard.tsx";
@@ -82,6 +84,30 @@ export function App() {
 
   useKeyboardButtons(pressButton);
   const serial = useSerialDevice(pressButton);
+
+  // The toy speaks, the phone voices it, the board breathes its LEDs.
+  const serialNudge = serial.nudge;
+  const voiceOn = state.companion.voice;
+  const companion = useIdleNudge(state, useCallback((line: string) => {
+    if (voiceOn) speak(line);
+    serialNudge(true);
+  }, [voiceOn, serialNudge]));
+  const companionActive = companion.nudge !== null;
+  useEffect(() => {
+    if (!companionActive) {
+      stopSpeaking();
+      serialNudge(false);
+    }
+  }, [companionActive, serialNudge]);
+  useEffect(() => {
+    const prime = () => primeSpeech();
+    window.addEventListener("pointerdown", prime, { once: true });
+    window.addEventListener("keydown", prime, { once: true });
+    return () => {
+      window.removeEventListener("pointerdown", prime);
+      window.removeEventListener("keydown", prime);
+    };
+  }, []);
 
   useEffect(() => installHabitToyBridge(pressButton), [pressButton]);
 
@@ -209,6 +235,9 @@ export function App() {
           tick={tick}
           insight={insight}
           pendingMemos={pending}
+          companionLine={companion.nudge?.line ?? null}
+          onDismissCompanion={companion.dismiss}
+          onPokeCompanion={companion.trigger}
           onPressButton={pressButton}
           onManualStart={() => (activeCategory ? revealActiveSession(activeCategory) : dialogs.openRecord())}
           onWriteMemo={openNextPendingMemo}
@@ -241,6 +270,12 @@ export function App() {
           onInstall={() => void install.install().then((outcome) => {
             if (outcome !== "accepted") showToast("설치를 취소했어요. 설정에서 다시 추가할 수 있어요.");
           })}
+          onVoiceChange={(voice) => commit((current) => actions.setCompanion(current, { voice }))}
+          onIdleMinutesChange={(idleMinutes) => commit((current) => actions.setCompanion(current, { idleMinutes }))}
+          onTestCompanion={() => {
+            switchTab("today");
+            companion.trigger();
+          }}
           onAssign={assignSlot}
           onGoalChange={(id, goal) => {
             commit((current) => actions.setCategoryGoal(current, id, goal));

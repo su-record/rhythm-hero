@@ -12,6 +12,9 @@ interface SettingsViewProps {
   deviceConnected: boolean;
   installState: InstallState;
   onInstall: () => void;
+  onVoiceChange: (voice: boolean) => void;
+  onIdleMinutesChange: (minutes: number) => void;
+  onTestCompanion: () => void;
   onAssign: (slot: number, categoryId: string) => void;
   onGoalChange: (categoryId: string, goal: number) => void;
   onEditCategory: (id: string) => void;
@@ -148,6 +151,33 @@ export function SettingsView({ state, active, deviceConnected, installState, ...
               </div>
             );
           })}
+        </div>
+      </section>
+
+      <section className="settings-section utility-panel companion-panel">
+        <div>
+          <p className="eyebrow">장난감</p>
+          <strong>조용하면 먼저 말을 걸어요</strong>
+          <p>기록이 없는 시간이 길어지면 캐릭터가 한마디 하고, 보드 LED가 숨을 쉽니다. 밤 11시부터 아침 8시까지는 조용히 있어요.</p>
+        </div>
+        <div className="companion-controls">
+          <label className="companion-toggle">
+            <input type="checkbox" checked={state.companion.voice} onChange={(event) => handlers.onVoiceChange(event.target.checked)} />
+            <span>목소리로 말하기</span>
+          </label>
+          <label className="companion-threshold">
+            <span>조용한 지</span>
+            <input
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={720}
+              value={state.companion.idleMinutes}
+              onChange={(event) => handlers.onIdleMinutesChange(Number(event.target.value))}
+            />
+            <span>분 지나면</span>
+          </label>
+          <button className="button secondary" type="button" onClick={handlers.onTestCompanion}>지금 말 걸어보기</button>
         </div>
       </section>
 

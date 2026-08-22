@@ -49,3 +49,13 @@ export function buildLedPayload(state: AppState): LedPayload {
     }),
   };
 }
+
+export interface NudgePayload {
+  type: "nudge";
+  /** true: breathe all four LEDs until the next button press; false: stop. */
+  active: boolean;
+}
+
+export function buildNudgePayload(active: boolean): NudgePayload {
+  return { type: "nudge", active };
+}

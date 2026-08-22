@@ -1,4 +1,5 @@
 import { DEFAULT_CATEGORY_COLORS, LEGACY_DEFAULT_CATEGORY_COLORS } from "./format.ts";
+import { DEFAULT_COMPANION } from "./idle.ts";
 import type { AppState, Category, MemoCaptureState, PeriodRange, Session } from "./types.ts";
 
 export const STORAGE_KEY = "habit-toy-state-v1";
@@ -41,6 +42,7 @@ export function createDefaultState(): AppState {
     status: "completed",
   }));
   return {
+    companion: { ...DEFAULT_COMPANION },
     categories,
     assignments: ["move", "read", "music", "project"],
     sessions,
@@ -66,6 +68,10 @@ export function normalizeState(parsed: AppState): AppState {
     }
   });
   parsed.sessions ||= [];
+  parsed.companion = {
+    voice: parsed.companion?.voice ?? DEFAULT_COMPANION.voice,
+    idleMinutes: Number.isFinite(parsed.companion?.idleMinutes) ? Math.max(1, parsed.companion.idleMinutes) : DEFAULT_COMPANION.idleMinutes,
+  };
   parsed.historyRange = normalizeRange(parsed.historyRange, 7);
   parsed.reflectionRange = normalizeRange(parsed.reflectionRange, 7);
   if (parsed.aiReflection && !parsed.aiReflection.factSnapshot) parsed.aiReflection = null;

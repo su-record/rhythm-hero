@@ -4,6 +4,7 @@ import { formatMinutes } from "../domain/format.ts";
 import { categoryById, todayMinutes, totalTodayMinutes } from "../domain/stats.ts";
 import type { AppState, Session } from "../domain/types.ts";
 import { CategoryCard } from "../components/CategoryCard.tsx";
+import { Companion, type CompanionMood } from "../components/Companion.tsx";
 import { MemoInbox } from "../components/MemoInbox.tsx";
 import { MiniInsight } from "../components/MiniInsight.tsx";
 
@@ -13,6 +14,9 @@ interface TodayViewProps {
   tick: number;
   insight: string;
   pendingMemos: Session[];
+  companionLine: string | null;
+  onDismissCompanion: () => void;
+  onPokeCompanion: () => void;
   onPressButton: (index: number) => void;
   onManualStart: () => void;
   onWriteMemo: () => void;
@@ -24,9 +28,10 @@ function todayLabel(): string {
   return new Intl.DateTimeFormat("ko-KR", { month: "long", day: "numeric", weekday: "long" }).format(new Date());
 }
 
-export function TodayView({ state, active, tick, insight, pendingMemos, ...handlers }: TodayViewProps) {
+export function TodayView({ state, active, tick, insight, pendingMemos, companionLine, ...handlers }: TodayViewProps) {
   const activeCategory = state.activeSession ? categoryById(state, state.activeSession.categoryId) : undefined;
   const isRunning = Boolean(activeCategory);
+  const mood: CompanionMood = isRunning ? "running" : companionLine ? "talking" : "waiting";
 
   // The tick only re-runs the arithmetic; the cards themselves are never rebuilt.
   const { total, cards } = useMemo(() => ({
@@ -38,6 +43,13 @@ export function TodayView({ state, active, tick, insight, pendingMemos, ...handl
 
   return (
     <section className={`view${active ? " active" : ""}`} id="view-today" aria-labelledby="today-title">
+      <Companion
+        mood={mood}
+        runningCategory={activeCategory}
+        line={companionLine}
+        onDismiss={handlers.onDismissCompanion}
+        onPoke={handlers.onPokeCompanion}
+      />
       <section className="today-overview" data-state={isRunning ? "running" : "idle"}>
         <div className="overview-heading">
           <div>

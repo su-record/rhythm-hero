@@ -100,7 +100,13 @@ export interface AiReflection {
   createdAt: string;
 }
 
+export interface CompanionSettings {
+  voice: boolean;
+  idleMinutes: number;
+}
+
 export interface AppState {
+  companion: CompanionSettings;
   categories: Category[];
   assignments: string[];
   sessions: Session[];

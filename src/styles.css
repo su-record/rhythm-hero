@@ -308,6 +308,114 @@ textarea:focus-visible,
 .activity-icon-small { width: 30px; height: 30px; }
 .activity-icon-now { width: 40px; height: 40px; }
 
+/* Companion */
+.companion {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  margin: 18px 0 6px;
+  padding-top: 8px;
+}
+
+.companion-figure {
+  position: relative;
+  display: grid;
+  width: 164px;
+  height: 150px;
+  padding: 0;
+  place-items: center;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  transition: transform var(--ease);
+}
+
+.companion-figure:active { transform: scale(0.96); }
+
+.companion-figure img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  animation: companion-float 3.6s ease-in-out infinite;
+  filter: drop-shadow(0 10px 18px rgba(17, 17, 17, 0.08));
+}
+
+.companion-running .companion-figure { width: 176px; height: 164px; }
+.companion-running .companion-figure img { animation: companion-bob 1.1s ease-in-out infinite; }
+.companion-talking .companion-figure img { animation: companion-wiggle 0.9s ease-in-out infinite; }
+
+.companion-caption {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.companion-bubble {
+  position: relative;
+  display: flex;
+  max-width: min(100%, 420px);
+  align-items: flex-start;
+  gap: 8px;
+  padding: 14px 12px 14px 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--canvas);
+  box-shadow: 0 12px 28px rgba(17, 17, 17, 0.08);
+  animation: companion-pop 220ms cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+
+.companion-bubble::after {
+  content: "";
+  position: absolute;
+  bottom: -9px;
+  left: 50%;
+  width: 16px;
+  height: 16px;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: var(--canvas);
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.companion-bubble p {
+  margin: 0;
+  font-size: 1.02rem;
+  font-weight: 650;
+  line-height: 1.45;
+  letter-spacing: -0.015em;
+}
+
+.companion-bubble-close { flex: none; width: 32px; height: 32px; min-height: 32px; }
+
+@keyframes companion-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+@keyframes companion-bob {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50% { transform: translateY(-7px) rotate(2deg); }
+}
+
+@keyframes companion-wiggle {
+  0%, 100% { transform: rotate(-4deg); }
+  50% { transform: rotate(4deg); }
+}
+
+.companion-controls { flex-wrap: wrap; justify-content: flex-end; }
+.companion-toggle,
+.companion-threshold { display: inline-flex; align-items: center; gap: 8px; font-size: 0.86rem; font-weight: 600; white-space: nowrap; }
+.companion-toggle input { width: 18px; height: 18px; accent-color: var(--ink); }
+.companion-threshold input { width: 64px; min-height: 40px; padding: 0 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); text-align: center; }
+
+@keyframes companion-pop {
+  from { opacity: 0; transform: translateY(6px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 /* Today */
 .today-overview { padding-top: 6px; }
 .total-block { margin-top: 34px; }
@@ -951,6 +1059,7 @@ textarea:focus-visible,
 .device-actions,
 .data-actions,
 .install-actions,
+.companion-controls,
 .dialog-actions,
 .completion-actions,
 .category-detail-header-actions { display: flex; align-items: center; gap: 8px; }
@@ -1327,10 +1436,12 @@ input[type="color"] { min-width: 70px; padding: 5px; }
   .utility-panel { align-items: flex-start; flex-direction: column; }
   .device-actions,
   .data-actions,
-  .install-actions { width: 100%; }
+  .install-actions,
+  .companion-controls { width: 100%; }
   .device-actions .button,
   .data-actions .button,
-  .install-actions .button { flex: 1; }
+  .install-actions .button,
+  .companion-controls .button { flex: 1; }
 }
 
 @media (max-width: 519px) {
@@ -1424,6 +1535,7 @@ input[type="color"] { min-width: 70px; padding: 5px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .companion-figure img, .companion-bubble { animation: none; }
   html { scroll-behavior: auto; }
   *, *::before, *::after {
     scroll-behavior: auto !important;

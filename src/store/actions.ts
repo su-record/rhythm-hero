@@ -2,7 +2,7 @@ import { completeActiveSession, createDefaultState, isDuplicateCategoryName, ran
 import { categoryById } from "../domain/stats.ts";
 import { safeColor } from "../domain/format.ts";
 import { endTimeFor } from "../domain/time.ts";
-import type { AppState, Category, MemoCaptureState, PeriodRange, Session, SessionSource } from "../domain/types.ts";
+import type { AppState, Category, CompanionSettings, MemoCaptureState, PeriodRange, Session, SessionSource } from "../domain/types.ts";
 
 export { isDuplicateCategoryName };
 
@@ -174,4 +174,16 @@ export function setAiReflection(state: AppState, aiReflection: AppState["aiRefle
 
 export function resetDemo(): AppState {
   return createDefaultState();
+}
+
+const MIN_IDLE_MINUTES = 1;
+const MAX_IDLE_MINUTES = 720;
+
+export function setCompanion(state: AppState, patch: Partial<CompanionSettings>): AppState {
+  const next: CompanionSettings = {
+    voice: patch.voice ?? state.companion.voice,
+    idleMinutes: Math.max(MIN_IDLE_MINUTES, Math.min(MAX_IDLE_MINUTES, Number(patch.idleMinutes ?? state.companion.idleMinutes) || state.companion.idleMinutes)),
+  };
+  if (next.voice === state.companion.voice && next.idleMinutes === state.companion.idleMinutes) return state;
+  return { ...state, companion: next };
 }
