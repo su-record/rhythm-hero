@@ -1,12 +1,16 @@
-const CACHE = "rhythm-hero-v22";
+/* Bump CACHE alone to ship a new build: index.html no longer carries ?v= query strings. */
+const CACHE = "rhythm-hero-v24";
+const SHELL = "./index.html";
 const ASSETS = [
   "./",
-  "./index.html",
-  "./styles.css?v=22",
-  "./app.js?v=22",
-  "./time-utils.mjs",
-  "./state-utils.mjs",
+  SHELL,
+  "./styles.css",
+  "./app.js",
   "./manifest.webmanifest",
+  "./assets/icons/icon-192.png",
+  "./assets/icons/icon-512.png",
+  "./assets/icons/icon-maskable-512.png",
+  "./assets/icons/apple-touch-icon-180.png",
 ];
 self.addEventListener("install", (event) => event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(ASSETS)).then(() => self.skipWaiting())));
 self.addEventListener("activate", (event) => event.waitUntil(Promise.all([
@@ -26,7 +30,11 @@ self.addEventListener("fetch", (event) => {
         }
         return response;
       } catch {
-        return (await caches.match(event.request)) || Response.error();
+        const cached = await caches.match(event.request);
+        if (cached) return cached;
+        // An installed app opened offline still needs the shell for any in-scope route.
+        if (event.request.mode === "navigate") return (await caches.match(SHELL)) || Response.error();
+        return Response.error();
       }
     })(),
   );

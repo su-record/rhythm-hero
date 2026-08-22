@@ -193,6 +193,8 @@ const clientId = (() => {
 let remoteReady = false;
 let syncTimer;
 let syncInFlight = false;
+let deferredInstallPrompt = null;
+let installPromptDismissed = false;
 let active4Draft = [];
 let categoryDetailId = null;
 let categoryEditingId = null;
@@ -920,7 +922,48 @@ function renderDeviceStatus() {
   $("#serial-connect").classList.toggle("hidden", connected);
   $("#serial-disconnect").classList.toggle("hidden", !connected);
 }
-function render() { renderToday(); renderHistory(); renderReflections(); renderSettings(); renderManualOptions(); renderDeviceStatus(); renderPendingMemoRecovery(); syncDeviceLights(); }
+const INSTALL_PANEL_COPY = {
+  installed: ["홈 화면 앱으로 실행 중", "이미 설치된 앱으로 열렸어요. 오프라인에서도 기록은 그대로 남습니다."],
+  ready: ["앱으로 설치할 수 있어요", "설치하면 주소창 없이 전체 화면으로 열리고, 오프라인에서도 기록할 수 있어요."],
+  dismissed: ["언제든 다시 설치할 수 있어요", "브라우저 메뉴의 '앱 설치'를 선택하면 홈 화면에 추가됩니다."],
+  ios: ["홈 화면에 추가할 수 있어요", "Safari 공유 버튼을 누른 뒤 '홈 화면에 추가'를 선택하세요."],
+};
+
+function installPanelState() {
+  if (window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true) return "installed";
+  if (deferredInstallPrompt) return "ready";
+  if (installPromptDismissed) return "dismissed";
+  // Safari on iOS never fires beforeinstallprompt, so it only gets the manual route.
+  if (navigator.standalone === false) return "ios";
+  return "hidden";
+}
+
+function renderInstallPanel() {
+  const panelState = installPanelState();
+  const panel = $("#install-panel");
+  panel.hidden = panelState === "hidden";
+  if (panel.hidden) return;
+  const [status, copy] = INSTALL_PANEL_COPY[panelState];
+  $("#install-panel-status").textContent = status;
+  $("#install-panel-copy").textContent = copy;
+  $("#install-app").classList.toggle("hidden", panelState !== "ready");
+}
+
+async function installApp() {
+  if (!deferredInstallPrompt) return renderInstallPanel();
+  const installPrompt = deferredInstallPrompt;
+  deferredInstallPrompt = null;
+  let outcome = "dismissed";
+  try {
+    installPrompt.prompt();
+    ({ outcome } = await installPrompt.userChoice);
+  } catch (_) { /* the browser withdrew the prompt */ }
+  installPromptDismissed = outcome !== "accepted";
+  renderInstallPanel();
+  if (outcome !== "accepted") showToast("설치를 취소했어요. 설정에서 다시 추가할 수 있어요.");
+}
+
+function render() { renderToday(); renderHistory(); renderReflections(); renderSettings(); renderManualOptions(); renderDeviceStatus(); renderInstallPanel(); renderPendingMemoRecovery(); syncDeviceLights(); }
 
 function revealActiveSession() {
   const activeCategory = state.activeSession ? categoryById(state.activeSession.categoryId) : null;
@@ -1351,6 +1394,7 @@ function wireEvents() {
   });
   $("#category-dialog").addEventListener("close", () => { categoryEditingId = null; setCategoryNameError(); });
   $("#category-form").addEventListener("submit", (event) => { if (event.submitter?.id === "save-category") { event.preventDefault(); saveCategoryFromDialog(); } });
+  $("#install-app").addEventListener("click", installApp);
   $("#export-data").addEventListener("click", exportData);
   $("#refresh-ai").addEventListener("click", requestAiReflection);
   $("#reset-demo").addEventListener("click", () => { state = createDefaultState(); saveState(); render(); showToast("데모 데이터를 다시 불러왔어요."); });
@@ -1375,6 +1419,18 @@ window.habitToy = { pressButton, getState: () => structuredClone(state) };
 render(); wireEvents();
 window.addEventListener("online", () => { if (remoteReady) syncToServer(); else restoreRemoteState(); });
 window.addEventListener("offline", () => setSyncStatus("오프라인 · 로컬 기록"));
+window.addEventListener("beforeinstallprompt", (event) => {
+  event.preventDefault();
+  deferredInstallPrompt = event;
+  installPromptDismissed = false;
+  renderInstallPanel();
+});
+window.addEventListener("appinstalled", () => {
+  deferredInstallPrompt = null;
+  installPromptDismissed = false;
+  renderInstallPanel();
+  showToast("홈 화면에 Rhythm Hero를 추가했어요.");
+});
 restoreRemoteState();
 if ("serviceWorker" in navigator) {
   let refreshingForUpdate = false;
@@ -1383,5 +1439,5 @@ if ("serviceWorker" in navigator) {
     refreshingForUpdate = true;
     window.location.reload();
   });
-  navigator.serviceWorker.register("sw.js?v=22", { updateViaCache: "none" }).then((registration) => registration.update()).catch(() => {});
+  navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then((registration) => registration.update()).catch(() => {});
 }

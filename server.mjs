@@ -5,6 +5,8 @@ import { extname, join, normalize, relative, resolve } from "node:path";
 
 const root = process.cwd();
 const dataRoot = process.env.HABIT_TOY_DATA_DIR ? resolve(process.env.HABIT_TOY_DATA_DIR) : join(root, ".habit-toy-data");
+// Serving the build output keeps sources, configs and tests unreachable by construction.
+const clientRoot = process.env.HABIT_TOY_CLIENT_DIR ? resolve(process.env.HABIT_TOY_CLIENT_DIR) : join(root, "dist", "client");
 const port = Number(process.env.PORT || 4173);
 const types = {
   ".css": "text/css; charset=utf-8",
@@ -22,21 +24,6 @@ const types = {
   ".woff": "font/woff",
   ".woff2": "font/woff2",
 };
-const publicFiles = new Set([
-  "app.js",
-  "index.html",
-  "manifest.webmanifest",
-  "state-utils.mjs",
-  "styles.css",
-  "sw.js",
-  "time-utils.mjs",
-]);
-
-function isPublicFile(relativePath) {
-  const portablePath = relativePath.replaceAll("\\", "/");
-  return publicFiles.has(portablePath) || portablePath.startsWith("assets/");
-}
-
 function sendJson(response, status, payload) {
   response.writeHead(status, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
   response.end(JSON.stringify(payload));
@@ -158,9 +145,8 @@ const server = createServer(async (request, response) => {
     response.end("Bad request");
     return;
   }
-  const filePath = normalize(join(root, relativePath));
-  const publicPath = relative(root, filePath);
-  if (publicPath.startsWith("..") || !isPublicFile(publicPath) || !existsSync(filePath) || statSync(filePath).isDirectory()) {
+  const filePath = normalize(join(clientRoot, relativePath));
+  if (relative(clientRoot, filePath).startsWith("..") || !existsSync(filePath) || statSync(filePath).isDirectory()) {
     response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
     response.end("Not found");
     return;
@@ -169,6 +155,11 @@ const server = createServer(async (request, response) => {
   if (request.method === "HEAD") { response.end(); return; }
   createReadStream(filePath).pipe(response);
 });
+
+if (!existsSync(join(clientRoot, "index.html"))) {
+  console.error(`Rhythm Hero has no build output at ${clientRoot}. Run "npm run build" first.`);
+  process.exit(1);
+}
 
 server.listen(port, () => {
   const address = server.address();

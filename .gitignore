@@ -3,3 +3,4 @@
 .site-artifacts/
 dist/
 tmp/
+node_modules/

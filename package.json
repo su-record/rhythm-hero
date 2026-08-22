@@ -5,9 +5,27 @@
   "type": "module",
   "description": "Rhythm Hero PWA prototype",
   "scripts": {
+    "dev": "vite",
     "start": "node server.mjs",
-    "build:mockup": "node scripts/build-public-mockup.mjs",
-    "check": "node --check app.js && node --check state-utils.mjs && node --check sw.js && node --check server.mjs",
+    "build": "npm run build:icons && npm run typecheck && vite build && node scripts/patch-classic-script.mjs",
+    "build:icons": "node scripts/build-icons.mjs",
+    "build:mockup": "npm run build && node scripts/build-public-mockup.mjs",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.node.json",
+    "check": "node --check server.mjs && node --check public/sw.js && node --check scripts/build-icons.mjs && node --check scripts/build-public-mockup.mjs",
+    "pretest": "npm run build",
     "test": "node --test tests/server.integration.test.mjs tests/session-state.test.mjs"
+  },
+  "dependencies": {
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@types/w3c-web-serial": "^1.0.8",
+    "@vitejs/plugin-react": "^6.1.0",
+    "typescript": "^5.9.3",
+    "vite": "^8.2.2"
   }
 }

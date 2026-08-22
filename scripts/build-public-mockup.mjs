@@ -12,6 +12,10 @@ const assets = [
   ["/manifest.webmanifest", "manifest.webmanifest", "application/manifest+json; charset=utf-8"],
   ["/time-utils.mjs", "time-utils.mjs", "text/javascript; charset=utf-8"],
   ["/state-utils.mjs", "state-utils.mjs", "text/javascript; charset=utf-8"],
+  ["/assets/icons/icon-192.png", "assets/icons/icon-192.png", "image/png"],
+  ["/assets/icons/icon-512.png", "assets/icons/icon-512.png", "image/png"],
+  ["/assets/icons/icon-maskable-512.png", "assets/icons/icon-maskable-512.png", "image/png"],
+  ["/assets/icons/apple-touch-icon-180.png", "assets/icons/apple-touch-icon-180.png", "image/png"],
 ];
 
 const encoded = await Promise.all(assets.map(async ([pathname, source, type]) => [
@@ -37,7 +41,7 @@ export default {
     return new Response(body, {
       headers: {
         "content-type": asset.type,
-        "cache-control": url.pathname === "/" || url.pathname === "/index.html" ? "no-store" : "public, max-age=3600",
+        "cache-control": asset.type === "image/png" ? "public, max-age=86400" : "no-cache",
         "x-content-type-options": "nosniff",
       },
     });

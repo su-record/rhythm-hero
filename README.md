@@ -19,6 +19,18 @@ npm run check
 npm test
 ```
 
+## 앱 설치 (PWA)
+
+`npm start`로 연 뒤 설정 탭의 `홈 화면에 추가`를 누르면 홈 화면 앱으로 설치됩니다. Chrome·Edge는 설치 배너를 대신 띄워 주고, iOS Safari에는 공유 → `홈 화면에 추가` 안내가 표시됩니다. 설치된 앱은 주소창 없이 전체 화면으로 열리며, 오프라인에서도 서비스 워커 캐시로 실행됩니다.
+
+앱 아이콘은 의존성 없이 브랜드 마크에서 직접 렌더링합니다.
+
+```powershell
+npm run build:icons
+```
+
+결과물은 `assets/icons/`에 저장되며 `npm run build:mockup`이 자동으로 먼저 실행합니다. 배포 버전을 갱신할 때는 `sw.js`의 `CACHE` 값만 올리면 됩니다.
+
 ## 데모 조작
 
 - Active 4 카드 클릭: 해당 활동 시작 또는 종료

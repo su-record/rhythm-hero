@@ -48,24 +48,31 @@ test("Rhythm Hero server preserves beta state and protects API fallbacks", async
   assert.equal(shell.status, 200);
   const shellText = await shell.text();
   assert.match(shellText, /Rhythm Hero/);
-  assert.match(shellText, /<script defer src="app\.js\?v=22"><\/script>/);
-  assert.match(shellText, /id="completion-dialog"/);
-  assert.match(shellText, /id="post-session-prompt"/);
-  assert.match(shellText, /id="memo-inbox"/);
+  assert.match(shellText, /<div id="root"><\/div>/, "the React shell must expose its mount point");
+  assert.match(shellText, /<link rel="manifest" href="\.\/manifest\.webmanifest" \/>/);
+  assert.match(shellText, /<link rel="apple-touch-icon" href="\.\/assets\/icons\/apple-touch-icon-180\.png" \/>/);
+  assert.match(shellText, /<script defer src="\.\/app\.js"><\/script>/, "file:// cannot load module scripts, so the entry must stay a deferred classic script");
+  assert.doesNotMatch(shellText, /type="module"/, "a module entry would break direct-open from disk");
+  assert.doesNotMatch(shellText, /crossorigin/, "crossorigin on a file:// page blocks the bundle");
 
-  const browserBundle = await fetch(`${server.baseUrl}/app.js?v=22`);
+  const browserBundle = await fetch(`${server.baseUrl}/app.js`);
   assert.equal(browserBundle.status, 200);
   const browserBundleText = await browserBundle.text();
   assert.doesNotMatch(browserBundleText, /^\s*import\s/m, "the direct-open browser bundle must not depend on ES module imports");
+  assert.doesNotMatch(browserBundleText, /^\s*export\s/m, "an iife bundle must not emit module exports");
 
-  for (const privatePath of ["/server.mjs", "/.env.example", "/README.md", "/tests/server.integration.test.mjs"]) {
+  const privatePaths = [
+    "/server.mjs", "/.env.example", "/README.md", "/tests/server.integration.test.mjs",
+    "/src/main.tsx", "/src/App.tsx", "/vite.config.ts", "/package.json",
+  ];
+  for (const privatePath of privatePaths) {
     const privateFile = await fetch(`${server.baseUrl}${privatePath}`);
     assert.equal(privateFile.status, 404, `${privatePath} must not be served as a public asset`);
   }
 
-  const moduleAsset = await fetch(`${server.baseUrl}/time-utils.mjs`);
-  assert.equal(moduleAsset.status, 200);
-  assert.match(moduleAsset.headers.get("content-type") || "", /^text\/javascript/);
+  const stylesheet = await fetch(`${server.baseUrl}/styles.css`);
+  assert.equal(stylesheet.status, 200);
+  assert.match(stylesheet.headers.get("content-type") || "", /^text\/css/);
 
   for (const character of ["spike-pink.png", "spike-blue.png"]) {
     const characterAsset = await fetch(`${server.baseUrl}/assets/characters/${character}`);
@@ -74,6 +81,30 @@ test("Rhythm Hero server preserves beta state and protects API fallbacks", async
     const bytes = new Uint8Array(await characterAsset.arrayBuffer());
     assert.deepEqual(Array.from(bytes.slice(0, 8)), [137, 80, 78, 71, 13, 10, 26, 10]);
   }
+
+  const manifestResponse = await fetch(`${server.baseUrl}/manifest.webmanifest`);
+  assert.equal(manifestResponse.status, 200);
+  assert.match(manifestResponse.headers.get("content-type") || "", /^application\/manifest\+json/);
+  const manifest = await manifestResponse.json();
+  assert.equal(manifest.start_url, "./");
+  assert.equal(manifest.scope, "./");
+  assert.ok(manifest.icons.some((icon) => icon.sizes === "192x192"), "an installable manifest needs a 192px icon");
+  assert.ok(manifest.icons.some((icon) => icon.sizes === "512x512" && icon.purpose === "any"), "an installable manifest needs a 512px icon");
+  assert.ok(manifest.icons.some((icon) => icon.purpose === "maskable"), "Android needs a maskable icon to avoid a letterboxed launcher badge");
+
+  for (const icon of [...manifest.icons.map((entry) => entry.src), "assets/icons/apple-touch-icon-180.png"]) {
+    const iconResponse = await fetch(`${server.baseUrl}/${icon}`);
+    assert.equal(iconResponse.status, 200, `${icon} must be served`);
+    assert.equal(iconResponse.headers.get("content-type"), "image/png");
+    const bytes = new Uint8Array(await iconResponse.arrayBuffer());
+    assert.deepEqual(Array.from(bytes.slice(0, 8)), [137, 80, 78, 71, 13, 10, 26, 10], `${icon} must be a real PNG`);
+  }
+
+  const workerScript = await fetch(`${server.baseUrl}/sw.js`);
+  assert.equal(workerScript.status, 200);
+  const workerText = await workerScript.text();
+  assert.doesNotMatch(workerText, /"\.\/[^"]*\?v=/, "cached asset paths must not carry hand-synced query strings");
+  assert.match(workerText, /assets\/icons\/icon-192\.png/, "icons must be precached for offline installs");
 
   const clientId = "integrationtestclient01";
   const state = {
