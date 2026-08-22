@@ -25,18 +25,28 @@ export function primeSpeech(): void {
   window.speechSynthesis.speak(silent);
 }
 
-export function speak(text: string): boolean {
+interface SpeakOptions {
+  rate?: number;
+  pitch?: number;
+}
+
+export function speak(text: string, options: SpeakOptions = {}): boolean {
   if (!speechSupported() || !text.trim()) return false;
   const synth = window.speechSynthesis;
   synth.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = LANG;
-  utterance.rate = 1.02;
-  utterance.pitch = 1.15;
+  utterance.rate = options.rate ?? 1.02;
+  utterance.pitch = options.pitch ?? 1.15;
   const voice = koreanVoice();
   if (voice) utterance.voice = voice;
   synth.speak(utterance);
   return true;
+}
+
+/* Button feedback: a short, bright shout. Pitch is capped at 2 by the API. */
+export function cheer(text: "시작!" | "끝!"): boolean {
+  return speak(text, { rate: 1.15, pitch: 1.9 });
 }
 
 export function stopSpeaking(): void {

@@ -18,7 +18,7 @@ import { useKeyboardButtons } from "./hooks/useKeyboardButtons.ts";
 import { useTicker } from "./hooks/useTicker.ts";
 import { useToast } from "./hooks/useToast.ts";
 import { useIdleNudge } from "./hooks/useIdleNudge.ts";
-import { primeSpeech, speak, stopSpeaking } from "./companion/speech.ts";
+import { cheer, primeSpeech, speak, stopSpeaking } from "./companion/speech.ts";
 import { usePostSessionPrompt } from "./hooks/usePostSessionPrompt.ts";
 import { BottomNav } from "./components/BottomNav.tsx";
 import { NowCard } from "./components/NowCard.tsx";
@@ -56,6 +56,7 @@ export function App() {
   const activeCategory = state.activeSession ? categoryById(state, state.activeSession.categoryId) : undefined;
 
   const openCompletion = useCallback((session: Session) => dialogs.openCompletion(session.id), [dialogs]);
+  const voiceOn = state.companion.voice;
   const prompt = usePostSessionPrompt(state, pending, dialogs.completionId !== null, dialogs.openCompletion);
 
   const switchTab = useCallback((next: TabId) => {
@@ -79,17 +80,17 @@ export function App() {
       return { state: result.state, result: result.outcome };
     });
     if (outcome.kind === "unassigned") return showToast("아직 연결되지 않은 버튼이에요.");
+    if (voiceOn) cheer(outcome.kind === "stopped" ? "끝!" : "시작!");
     if (outcome.kind === "started") return showToast(`${outcome.category.name} 기록을 시작했어요.`);
     if (outcome.kind === "stopped") return openCompletion(outcome.session);
     prompt.show(outcome.session.id);
-  }, [showToast, openCompletion, prompt]);
+  }, [showToast, openCompletion, prompt, voiceOn]);
 
   useKeyboardButtons(pressButton);
   const serial = useSerialDevice(pressButton);
 
   // The toy speaks, the phone voices it, the board breathes its LEDs.
   const serialNudge = serial.nudge;
-  const voiceOn = state.companion.voice;
   const companion = useIdleNudge(state, useCallback((line: string) => {
     if (voiceOn) speak(line);
     serialNudge(true);
@@ -118,8 +119,10 @@ export function App() {
       const result = actions.stopSession(current);
       return { state: result.state, result: result.completedSession };
     });
-    if (completed) openCompletion(completed);
-  }, [openCompletion]);
+    if (!completed) return;
+    if (voiceOn) cheer("끝!");
+    openCompletion(completed);
+  }, [openCompletion, voiceOn]);
 
   const settleMemo = useCallback((memo: string, captureState: "saved" | "skipped") => {
     const sessionId = dialogs.completionId;
@@ -135,9 +138,11 @@ export function App() {
       const result = actions.startSession(current, categoryId, "app");
       return { state: result.state, result };
     });
-    if (outcome.started) showToast(`${outcome.started.name} 기록을 시작했어요.`);
-    else if (outcome.alreadyRunning) revealActiveSession(outcome.alreadyRunning);
-  }, [dialogs, showToast, revealActiveSession]);
+    if (outcome.started) {
+      if (voiceOn) cheer("시작!");
+      showToast(`${outcome.started.name} 기록을 시작했어요.`);
+    } else if (outcome.alreadyRunning) revealActiveSession(outcome.alreadyRunning);
+  }, [dialogs, showToast, revealActiveSession, voiceOn]);
 
   const saveAssignments = useCallback((assignments: string[]) => {
     if (state.activeSession) return showToast("진행 중인 기록을 먼저 종료해주세요.");
