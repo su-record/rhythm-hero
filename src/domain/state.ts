@@ -30,10 +30,10 @@ const SEED: Array<[number, string, number, number, number]> = [
 
 export function createDefaultState(): AppState {
   const categories: Category[] = [
-    { id: "move", name: "운동", color: DEFAULT_CATEGORY_COLORS.move, goal: 60, status: "active" },
-    { id: "read", name: "독서", color: DEFAULT_CATEGORY_COLORS.read, goal: 60, status: "active" },
-    { id: "music", name: "음악", color: DEFAULT_CATEGORY_COLORS.music, goal: 45, status: "active" },
-    { id: "project", name: "프로젝트", color: DEFAULT_CATEGORY_COLORS.project, goal: 90, status: "active" },
+    { id: "move", name: "운동", color: DEFAULT_CATEGORY_COLORS.move, goal: 60, weeklyGoal: 240, status: "active" },
+    { id: "read", name: "독서", color: DEFAULT_CATEGORY_COLORS.read, goal: 60, weeklyGoal: 300, status: "active" },
+    { id: "music", name: "음악", color: DEFAULT_CATEGORY_COLORS.music, goal: 45, weeklyGoal: 150, status: "active" },
+    { id: "project", name: "프로젝트", color: DEFAULT_CATEGORY_COLORS.project, goal: 90, weeklyGoal: 360, status: "active" },
   ];
   const sessions: Session[] = SEED.map(([daysAgo, categoryId, hour, minute, duration], index) => ({
     id: `seed-${index}`,
@@ -64,6 +64,7 @@ function normalizeRange(value: unknown, fallback: PeriodRange): PeriodRange {
 export function normalizeState(parsed: AppState): AppState {
   parsed.categories.forEach((category) => {
     if (!category.status) category.status = "active";
+    category.weeklyGoal = Number.isFinite(category.weeklyGoal) ? Math.max(0, Number(category.weeklyGoal)) : 0;
     const legacyColor = LEGACY_DEFAULT_CATEGORY_COLORS[category.id as keyof typeof LEGACY_DEFAULT_CATEGORY_COLORS];
     if (legacyColor && String(category.color).toUpperCase() === legacyColor) {
       category.color = DEFAULT_CATEGORY_COLORS[category.id as keyof typeof DEFAULT_CATEGORY_COLORS];

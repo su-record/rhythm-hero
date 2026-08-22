@@ -26,18 +26,18 @@ export function minutesFor(categoryId: string, sessions: Array<Session | DaySess
     .reduce((sum, session) => sum + durationMs(session) / 60_000, 0);
 }
 
-export function todaySessions(state: AppState): DaySession[] {
-  return sessionsForDay(state, new Date());
+export function todaySessions(state: AppState, now: Date = new Date()): DaySession[] {
+  return sessionsForDay(state, now);
 }
 
-export function todayMinutes(state: AppState, categoryId: string): number {
-  const completed = minutesFor(categoryId, todaySessions(state));
+export function todayMinutes(state: AppState, categoryId: string, now: Date = new Date()): number {
+  const completed = minutesFor(categoryId, todaySessions(state, now));
   if (state.activeSession?.categoryId !== categoryId) return completed;
-  return completed + overlapMsForDay(state.activeSession, new Date()) / 60_000;
+  return completed + overlapMsForDay(state.activeSession, now, now) / 60_000;
 }
 
-export function totalTodayMinutes(state: AppState): number {
-  return state.categories.reduce((sum, category) => sum + todayMinutes(state, category.id), 0);
+export function totalTodayMinutes(state: AppState, now: Date = new Date()): number {
+  return state.categories.reduce((sum, category) => sum + todayMinutes(state, category.id, now), 0);
 }
 
 export interface CategoryStats {

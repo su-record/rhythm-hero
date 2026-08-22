@@ -169,18 +169,19 @@ test("editing a Category drops the stored AI headline", () => {
       createdAt: "2026-08-21T00:00:00.000Z",
     },
   });
-  const result = upsertCategory(state, { name: "독서 노트", color: "#20D68A", goal: 45 }, "read");
+  const result = upsertCategory(state, { name: "독서 노트", color: "#20D68A", goal: 45, weeklyGoal: 200 }, "read");
 
   assert.equal(result.state.aiReflection, null, "the headline cited evidence that just moved");
   assert.equal(result.state.categories[0]?.name, "독서 노트");
 });
 
 test("a new Category gets an id, a safe colour and a clamped goal", () => {
-  const result = upsertCategory(baseState(), { name: "산책", color: "not-a-colour", goal: 5000 }, null);
+  const result = upsertCategory(baseState(), { name: "산책", color: "not-a-colour", goal: 5000, weeklyGoal: 99999 }, null);
   const created = result.state.categories.at(-1);
 
   assert.equal(created?.name, "산책");
   assert.equal(created?.goal, 720);
+  assert.equal(created?.weeklyGoal, 5040, "a week cannot hold more than seven maxed days");
   assert.match(created?.color ?? "", /^#[0-9A-Fa-f]{6}$/);
   assert.equal(created?.status, "active");
   assert.equal(result.categoryId, created?.id);

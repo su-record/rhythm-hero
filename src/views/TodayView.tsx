@@ -1,19 +1,18 @@
 import { useMemo } from "react";
 
 import { buildDayCards, deriveRoutine, describeRoutine } from "../domain/routine.ts";
+import { describeWeek, weeklyProgress } from "../domain/week.ts";
 import { categoryById, todayMinutes } from "../domain/stats.ts";
 import type { AppState, Session } from "../domain/types.ts";
-import { CategoryCard } from "../components/CategoryCard.tsx";
-import { Companion, type CompanionMood } from "../components/Companion.tsx";
+import { ButtonRow } from "../components/ButtonRow.tsx";
 import { MemoInbox } from "../components/MemoInbox.tsx";
-import { MiniInsight } from "../components/MiniInsight.tsx";
+import { WeekGoals } from "../components/WeekGoals.tsx";
 import { RoutineDeck } from "../components/RoutineDeck.tsx";
 
 interface TodayViewProps {
   state: AppState;
   active: boolean;
   tick: number;
-  insight: string;
   pendingMemos: Session[];
   companionLine: string | null;
   onDismissCompanion: () => void;
@@ -21,60 +20,53 @@ interface TodayViewProps {
   onPressButton: (index: number) => void;
   onManualStart: () => void;
   onWriteMemo: () => void;
-  onOpenReflections: () => void;
   onEditActive4: () => void;
+  onEditGoals: () => void;
 }
 
 const DECK_DAYS = 7;
 
-export function TodayView({ state, active, tick, insight, pendingMemos, companionLine, ...handlers }: TodayViewProps) {
+export function TodayView({ state, active, tick, pendingMemos, companionLine, ...handlers }: TodayViewProps) {
   const activeCategory = state.activeSession ? categoryById(state, state.activeSession.categoryId) : undefined;
   const isRunning = Boolean(activeCategory);
-  const mood: CompanionMood = isRunning ? "running" : companionLine ? "talking" : "waiting";
+  const mood = isRunning ? "running" : companionLine ? "talking" : "waiting";
 
   // The tick only re-runs the arithmetic; the cards themselves are never rebuilt.
-  const { cards, dayCards } = useMemo(() => ({
-    cards: state.assignments.map((id) => ({ category: categoryById(state, id), minutes: todayMinutes(state, id) })),
+  const { buttons, dayCards, week } = useMemo(() => ({
+    buttons: state.assignments.map((id) => ({ category: categoryById(state, id), minutes: todayMinutes(state, id) })),
     dayCards: buildDayCards(state, DECK_DAYS),
+    week: weeklyProgress(state),
   }), [state, tick]);
   const routineLabel = useMemo(() => describeRoutine(deriveRoutine(state, DECK_DAYS)), [state]);
 
   return (
     <section className={`view${active ? " active" : ""}`} id="view-today" aria-labelledby="today-title">
-      <Companion
-        profile={state.profile}
-        mood={mood}
-        runningCategory={activeCategory}
-        line={companionLine}
-        onDismiss={handlers.onDismissCompanion}
-        onPoke={handlers.onPokeCompanion}
+      <RoutineDeck
+        cards={dayCards}
+        routineLabel={routineLabel}
+        ownerName={state.profile?.name ?? null}
+        companion={{
+          profile: state.profile,
+          mood,
+          line: companionLine,
+          onDismiss: handlers.onDismissCompanion,
+          onPoke: handlers.onPokeCompanion,
+        }}
       />
-      <RoutineDeck cards={dayCards} routineLabel={routineLabel} ownerName={state.profile?.name ?? null} />
 
-      <section className="section-heading">
+      <section className="section-heading compact">
         <div>
-          <h2>나의 네 가지</h2>
-          <p>눌러서 바로 기록해요</p>
+          <h2>버튼</h2>
+          <p>보드와 같은 순서예요</p>
         </div>
         <div className="section-tools">
           <span className="keyboard-hint keyboard-only-hint" role="note" aria-label="데스크톱 키보드 단축키 1부터 4까지">키보드 1–4</span>
           <button className="edit-link" type="button" onClick={handlers.onEditActive4}>편집</button>
         </div>
       </section>
-      <div className="category-grid">
-        {cards.map(({ category, minutes }, index) =>
-          category ? (
-            <CategoryCard
-              key={category.id}
-              category={category}
-              index={index}
-              minutes={minutes}
-              running={state.activeSession?.categoryId === category.id}
-              onPress={handlers.onPressButton}
-            />
-          ) : null,
-        )}
-      </div>
+      <ButtonRow buttons={buttons} runningId={state.activeSession?.categoryId ?? null} onPress={handlers.onPressButton} />
+
+      <WeekGoals progress={week} summary={describeWeek(week)} onEditGoals={handlers.onEditGoals} />
 
       <button
         className="manual-button"
@@ -87,7 +79,6 @@ export function TodayView({ state, active, tick, insight, pendingMemos, companio
       </button>
 
       <MemoInbox state={state} pending={pendingMemos} onWrite={handlers.onWriteMemo} />
-      <MiniInsight message={insight} onOpenReflections={handlers.onOpenReflections} />
     </section>
   );
 }

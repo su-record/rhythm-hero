@@ -8,7 +8,10 @@ export interface Category {
   id: string;
   name: string;
   color: string;
+  /** Daily goal in minutes; 0 means none. */
   goal: number;
+  /** Weekly goal in minutes; 0 or missing means none. */
+  weeklyGoal?: number;
   status: CategoryStatus;
 }
 

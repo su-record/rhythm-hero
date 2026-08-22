@@ -53,7 +53,6 @@ export function App() {
   const tick = useTicker(Boolean(state.activeSession));
 
   const pending = useMemo(() => pendingMemoSessions(state), [state]);
-  const insight = useMemo(() => getReflectionReport(state).facts[0]?.message ?? "", [state]);
   const activeCategory = state.activeSession ? categoryById(state, state.activeSession.categoryId) : undefined;
 
   const openCompletion = useCallback((session: Session) => dialogs.openCompletion(session.id), [dialogs]);
@@ -236,7 +235,6 @@ export function App() {
           state={state}
           active={tab === "today"}
           tick={tick}
-          insight={insight}
           pendingMemos={pending}
           companionLine={companion.nudge?.line ?? null}
           onDismissCompanion={companion.dismiss}
@@ -244,7 +242,7 @@ export function App() {
           onPressButton={pressButton}
           onManualStart={() => (activeCategory ? revealActiveSession(activeCategory) : dialogs.openRecord())}
           onWriteMemo={openNextPendingMemo}
-          onOpenReflections={() => switchTab("reflections")}
+          onEditGoals={() => switchTab("settings")}
           onEditActive4={() => (state.activeSession
             ? showToast("진행 중인 기록을 종료한 뒤 나의 네 가지를 편집해주세요.")
             : dialogs.openActive4())}
@@ -284,6 +282,10 @@ export function App() {
           onGoalChange={(id, goal) => {
             commit((current) => actions.setCategoryGoal(current, id, goal));
             showToast(`${categoryById(state, id)?.name ?? ""} 목표를 저장했어요.`);
+          }}
+          onWeeklyGoalChange={(id, goal) => {
+            commit((current) => actions.setCategoryWeeklyGoal(current, id, goal));
+            showToast(`${categoryById(state, id)?.name ?? ""} 주간 목표를 저장했어요.`);
           }}
           onEditCategory={dialogs.openCategoryEditor}
           onArchiveCategory={archiveCategory}

@@ -133,31 +133,43 @@ export interface CategoryDraft {
   name: string;
   color: string;
   goal: number;
+  weeklyGoal: number;
 }
 
 const MAX_GOAL_MINUTES = 720;
+const MAX_WEEKLY_GOAL_MINUTES = 7 * MAX_GOAL_MINUTES;
+
+function clampWeekly(value: unknown): number {
+  return Math.max(0, Math.min(MAX_WEEKLY_GOAL_MINUTES, Number(value) || 0));
+}
 
 /** Editing a Category invalidates the stored AI headline: its evidence moved. */
 export function upsertCategory(state: AppState, draft: CategoryDraft, editingId: string | null): { state: AppState; categoryId: string } {
   const color = safeColor(draft.color);
   const goal = Math.max(0, Math.min(MAX_GOAL_MINUTES, Number(draft.goal) || 0));
+  const weeklyGoal = clampWeekly(draft.weeklyGoal);
   if (editingId) {
     return {
       state: {
         ...state,
         aiReflection: null,
-        categories: state.categories.map((item) => (item.id === editingId ? { ...item, name: draft.name, color, goal } : item)),
+        categories: state.categories.map((item) => (item.id === editingId ? { ...item, name: draft.name, color, goal, weeklyGoal } : item)),
       },
       categoryId: editingId,
     };
   }
-  const category: Category = { id: randomId(), name: draft.name, color, goal, status: "active" };
+  const category: Category = { id: randomId(), name: draft.name, color, goal, weeklyGoal, status: "active" };
   return { state: { ...state, categories: [...state.categories, category] }, categoryId: category.id };
 }
 
 export function setCategoryGoal(state: AppState, id: string, goal: number): AppState {
   const clamped = Math.max(0, Math.min(MAX_GOAL_MINUTES, Number(goal) || 0));
   return { ...state, categories: state.categories.map((item) => (item.id === id ? { ...item, goal: clamped } : item)) };
+}
+
+export function setCategoryWeeklyGoal(state: AppState, id: string, weeklyGoal: number): AppState {
+  const clamped = clampWeekly(weeklyGoal);
+  return { ...state, categories: state.categories.map((item) => (item.id === id ? { ...item, weeklyGoal: clamped } : item)) };
 }
 
 export function setHistoryRange(state: AppState, range: PeriodRange): AppState {

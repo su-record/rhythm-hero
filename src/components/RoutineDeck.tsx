@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 
 import { formatMinutes, safeColor } from "../domain/format.ts";
 import { TIMELINE, type DayCard, type DayMood } from "../domain/routine.ts";
+import { toyArt } from "../domain/profile.ts";
+import type { Profile } from "../domain/types.ts";
 
 const MOOD_LABEL: Record<DayMood, string> = { quiet: "조용한 하루", moving: "움직인 하루", full: "채운 하루" };
 const TIMELINE_TICKS = [6, 12, 18, 24];
@@ -42,7 +44,37 @@ function DayTimeline({ card }: { card: DayCard }) {
   );
 }
 
-function RoutineCard({ card, index }: { card: DayCard; index: number }) {
+export interface CompanionSlot {
+  profile: Profile | null;
+  mood: "waiting" | "running" | "talking";
+  line: string | null;
+  onDismiss: () => void;
+  onPoke: () => void;
+}
+
+/* The toy lives in today's card. Small, on the left, with its line beside it:
+   one composed unit instead of a figure floating over the page. */
+function CardCompanion({ slot }: { slot: CompanionSlot }) {
+  const toyName = slot.profile?.toyName ?? "장난감";
+  const idle = slot.mood === "waiting" ? "기다리는 중" : slot.mood === "running" ? "같이 기록 중" : "말하는 중";
+  return (
+    <div className={`card-companion card-companion-${slot.mood}`}>
+      <button className="card-companion-figure" type="button" aria-label={`${toyName} ${idle}. 눌러서 말 걸기`} onClick={slot.onPoke}>
+        <img src={toyArt(slot.profile?.toy ?? "spike", slot.mood === "running")} alt="" draggable={false} />
+      </button>
+      {slot.line ? (
+        <div className="card-companion-bubble" role="status" aria-live="polite">
+          <p>{slot.line}</p>
+          <button className="icon-button card-companion-close" type="button" aria-label="말풍선 닫기" onClick={slot.onDismiss}>×</button>
+        </div>
+      ) : (
+        <p className="card-companion-caption"><strong>{toyName}</strong> · {idle}</p>
+      )}
+    </div>
+  );
+}
+
+function RoutineCard({ card, index, companion }: { card: DayCard; index: number; companion?: CompanionSlot }) {
   const lead = card.shares[0];
   const tint = lead ? safeColor(lead.category.color) : "#E6E6E1";
   const description = card.shares.length
@@ -55,6 +87,7 @@ function RoutineCard({ card, index }: { card: DayCard; index: number }) {
       style={{ ["--tint" as string]: tint }}
       aria-label={`${dayLabel(card, index)} ${dateLabel(card)}, ${formatMinutes(card.totalMinutes)}, ${description}`}
     >
+      {companion ? <CardCompanion slot={companion} /> : null}
       <header className="routine-card-head">
         <div>
           <p className="eyebrow">{dateLabel(card)}</p>
@@ -92,9 +125,10 @@ interface RoutineDeckProps {
   cards: DayCard[];
   routineLabel: string;
   ownerName: string | null;
+  companion: CompanionSlot;
 }
 
-export function RoutineDeck({ cards, routineLabel, ownerName }: RoutineDeckProps) {
+export function RoutineDeck({ cards, routineLabel, ownerName, companion }: RoutineDeckProps) {
   const scroller = useRef<HTMLDivElement>(null);
   const [current, setCurrent] = useState(0);
 
@@ -126,7 +160,7 @@ export function RoutineDeck({ cards, routineLabel, ownerName }: RoutineDeckProps
         </div>
       </div>
       <div className="routine-scroller" ref={scroller} tabIndex={0} aria-label="하루 카드, 좌우로 넘겨 지난 날을 볼 수 있어요">
-        {cards.map((card, index) => <RoutineCard key={card.day.getTime()} card={card} index={index} />)}
+        {cards.map((card, index) => <RoutineCard key={card.day.getTime()} card={card} index={index} companion={card.isToday ? companion : undefined} />)}
       </div>
       <div className="routine-dots" role="tablist" aria-label="날짜 선택">
         {cards.map((card, index) => (

@@ -17,6 +17,7 @@ interface CategoryDialogProps {
 const MAX_NAME_LENGTH = 20;
 const DEFAULT_COLOR = "#F1A75B";
 const DEFAULT_GOAL = "30";
+const DEFAULT_WEEKLY_GOAL = "150";
 
 function validate(state: AppState, name: string, editingId: string | null): string {
   if (!name) return "활동 이름을 입력해주세요.";
@@ -29,6 +30,7 @@ export function CategoryDialog({ state, open, editing, onClose, onSave }: Catego
   const [name, setName] = useState("");
   const [color, setColor] = useState(DEFAULT_COLOR);
   const [goal, setGoal] = useState(DEFAULT_GOAL);
+  const [weeklyGoal, setWeeklyGoal] = useState(DEFAULT_WEEKLY_GOAL);
   const [error, setError] = useState("");
   const nameInput = useRef<HTMLInputElement>(null);
   const ref = useDialog(open, onClose);
@@ -38,6 +40,7 @@ export function CategoryDialog({ state, open, editing, onClose, onSave }: Catego
     setName(editing?.name ?? "");
     setColor(editing ? safeColor(editing.color) : DEFAULT_COLOR);
     setGoal(editing ? String(Math.max(0, Math.min(720, Number(editing.goal) || 0))) : DEFAULT_GOAL);
+    setWeeklyGoal(editing ? String(Math.max(0, Number(editing.weeklyGoal) || 0)) : DEFAULT_WEEKLY_GOAL);
     setError("");
     const frame = requestAnimationFrame(() => {
       nameInput.current?.focus();
@@ -56,7 +59,7 @@ export function CategoryDialog({ state, open, editing, onClose, onSave }: Catego
       nameInput.current?.focus();
       return;
     }
-    onSave({ name: trimmed, color, goal: Number(goal) }, editing?.id ?? null);
+    onSave({ name: trimmed, color, goal: Number(goal), weeklyGoal: Number(weeklyGoal) }, editing?.id ?? null);
   };
 
   return (
@@ -93,6 +96,10 @@ export function CategoryDialog({ state, open, editing, onClose, onSave }: Catego
             <input type="number" min={0} max={720} value={goal} onChange={(event) => setGoal(event.target.value)} />
           </label>
         </div>
+        <label>
+          주간 목표(분) <span>0이면 없음</span>
+          <input type="number" min={0} max={5040} step={10} value={weeklyGoal} onChange={(event) => setWeeklyGoal(event.target.value)} />
+        </label>
         <button className="button full" value="default" type="submit">{editing ? "변경사항 저장" : "활동 추가"}</button>
       </form>
     </dialog>

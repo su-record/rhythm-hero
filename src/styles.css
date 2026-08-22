@@ -659,6 +659,120 @@ textarea:focus-visible,
 .toy-option.selected .toy-option-art img:first-child { opacity: 0; transform: scale(0.9); }
 .toy-option.selected .toy-option-active { opacity: 1; transform: scale(1); animation: companion-bob 1.1s ease-in-out infinite; }
 
+/* Home: companion inside today's card */
+.card-companion {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  margin: -4px 0 2px;
+}
+
+.card-companion-figure {
+  display: grid;
+  width: 76px;
+  height: 72px;
+  padding: 0;
+  place-items: center;
+  border-radius: 22px;
+  background: color-mix(in srgb, var(--tint) 14%, var(--canvas));
+  cursor: pointer;
+  transition: transform 120ms ease, background var(--ease);
+}
+
+.card-companion-figure:active { transform: scale(0.94); }
+.card-companion-figure img { width: 86%; height: 86%; object-fit: contain; animation: companion-float 3.6s ease-in-out infinite; }
+.card-companion-running .card-companion-figure { background: #DDF4FC; }
+.card-companion-running .card-companion-figure img { animation: companion-bob 1.1s ease-in-out infinite; }
+.card-companion-talking .card-companion-figure img { animation: companion-wiggle 0.9s ease-in-out infinite; }
+
+.card-companion-caption { margin: 0; color: var(--ink-soft); font-size: 0.84rem; }
+.card-companion-caption strong { color: var(--ink); font-weight: 750; }
+
+.card-companion-bubble {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 10px 8px 10px 14px;
+  border-radius: 16px 16px 16px 4px;
+  background: var(--ink);
+  color: var(--canvas);
+  animation: companion-pop 220ms cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+
+.card-companion-bubble p { margin: 0; font-size: 0.92rem; font-weight: 650; line-height: 1.4; letter-spacing: -0.015em; }
+.card-companion-close { flex: none; width: 26px; height: 26px; min-height: 26px; border-color: transparent; background: transparent; color: inherit; opacity: 0.7; }
+
+/* Home: four buttons in a row, mirroring the board */
+.button-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.category-card.compact {
+  min-height: 0;
+  padding: 12px 10px 10px;
+  gap: 6px;
+  border-radius: 18px;
+  align-items: center;
+  text-align: center;
+}
+
+.category-card.compact .button-index { position: absolute; top: 8px; left: 8px; min-width: 20px; height: 20px; padding: 0 5px; font-size: 0.64rem; }
+.category-card.compact .activity-icon-button { width: 34px; height: 34px; margin-top: 14px; }
+.category-card.compact .category-name { font-size: 0.8rem; font-weight: 700; }
+.category-card.compact .category-time { margin-top: 0; font-size: 0.95rem; font-weight: 800; letter-spacing: -0.02em; }
+.category-card.compact .progress-track { height: 4px; margin-top: 4px; }
+.category-card.compact.running .category-time { color: var(--category); }
+
+/* Home: weekly goals */
+.week-goals { margin-top: 30px; }
+.week-goal-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+
+.week-goal {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px 10px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--canvas);
+}
+
+.week-goal.done { background: color-mix(in srgb, var(--category) 8%, var(--canvas)); border-color: color-mix(in srgb, var(--category) 35%, var(--line)); }
+
+.week-goal-ring {
+  position: relative;
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: 50%;
+  background: conic-gradient(var(--category) calc(var(--ratio) * 360deg), var(--surface-pressed) 0);
+}
+
+.week-goal-ring::after { position: absolute; inset: 5px; border-radius: 50%; background: var(--canvas); content: ""; }
+.week-goal-ring-dot { position: relative; z-index: 1; width: 10px; height: 10px; border-radius: 50%; background: var(--category); }
+.week-goal-copy { display: grid; gap: 2px; min-width: 0; }
+.week-goal-copy strong { font-size: 0.92rem; font-weight: 750; }
+.week-goal-copy span { color: var(--ink-soft); font-size: 0.76rem; font-variant-numeric: tabular-nums; }
+.week-goal-percent { font-size: 0.92rem; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.week-goal.done .week-goal-percent { color: var(--category); }
+
+.week-goal-empty {
+  width: 100%;
+  min-height: 52px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 0.86rem;
+  font-weight: 650;
+}
+
 /* Today */
 .today-overview { padding-top: 6px; }
 .total-block { margin-top: 34px; }
@@ -1228,6 +1342,7 @@ textarea:focus-visible,
 .assignment-row,
 .goal-row,
 .category-manager-row {
+  flex-wrap: wrap;
   display: flex;
   align-items: center;
   min-height: 72px;
@@ -1760,7 +1875,7 @@ input[type="color"] { min-width: 70px; padding: 5px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .companion-figure img, .companion-bubble, .companion::before, .routine-live, .routine-segment.running, .toy-option-active { animation: none; }
+  .companion-figure img, .companion-bubble, .companion::before, .card-companion-figure img, .card-companion-bubble, .routine-live, .routine-segment.running, .toy-option-active { animation: none; }
   .routine-scroller { scroll-behavior: auto; }
   html { scroll-behavior: auto; }
   *, *::before, *::after {

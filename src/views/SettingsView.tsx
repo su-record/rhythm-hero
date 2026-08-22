@@ -19,6 +19,7 @@ interface SettingsViewProps {
   onEditProfile: () => void;
   onAssign: (slot: number, categoryId: string) => void;
   onGoalChange: (categoryId: string, goal: number) => void;
+  onWeeklyGoalChange: (categoryId: string, goal: number) => void;
   onEditCategory: (id: string) => void;
   onArchiveCategory: (id: string) => void;
   onAddCategory: () => void;
@@ -87,7 +88,7 @@ export function SettingsView({ state, active, deviceConnected, installState, ...
       </section>
 
       <section className="settings-section">
-        <div className="section-heading compact"><div><h2>일일 목표</h2><p>목표는 선택 사항이며, 미달은 실패가 아닙니다.</p></div></div>
+        <div className="section-heading compact"><div><h2>목표</h2><p>하루와 한 주. 둘 다 선택 사항이며, 미달은 실패가 아닙니다.</p></div></div>
         <div className="goal-list">
           {state.categories.map((category) => (
             <div className="goal-row" key={category.id} style={{ ["--category" as string]: safeColor(category.color) }}>
@@ -103,9 +104,23 @@ export function SettingsView({ state, active, deviceConnected, installState, ...
                   min={0}
                   max={MAX_GOAL_MINUTES}
                   defaultValue={category.goal || 0}
+                  aria-label={`${category.name} 하루 목표`}
                   onChange={(event) => handlers.onGoalChange(category.id, Number(event.target.value))}
                 />
-                <span>분</span>
+                <span>분/일</span>
+              </span>
+              <span className="goal-control">
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  max={MAX_GOAL_MINUTES * 7}
+                  step={10}
+                  defaultValue={category.weeklyGoal || 0}
+                  aria-label={`${category.name} 주간 목표`}
+                  onChange={(event) => handlers.onWeeklyGoalChange(category.id, Number(event.target.value))}
+                />
+                <span>분/주</span>
               </span>
             </div>
           ))}
