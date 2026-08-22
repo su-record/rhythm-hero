@@ -911,6 +911,10 @@ textarea:focus-visible,
 
 /* Goal dialog */
 .goal-dialog { width: min(calc(100% - 24px), 520px); }
+/* The slot step is a plain div, not a form: give it the same inset the form gets. */
+.goal-dialog > .onboarding-step { padding: 26px; }
+.goal-dialog > form.onboarding-step { padding: 26px; }
+.goal-dialog .slot-picker { margin-top: 2px; }
 .goal-dialog-unit { margin-top: 4px; grid-template-columns: 1fr auto; }
 .slot-picker { display: grid; gap: 8px; }
 .slot-option {
