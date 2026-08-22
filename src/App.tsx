@@ -19,7 +19,8 @@ import { useTicker } from "./hooks/useTicker.ts";
 import { useToast } from "./hooks/useToast.ts";
 import { useIdleNudge } from "./hooks/useIdleNudge.ts";
 import { useGoalVoice } from "./hooks/useGoalVoice.ts";
-import { cheer, primeSpeech, speak, stopSpeaking } from "./companion/speech.ts";
+import { primeSpeech } from "./companion/speech.ts";
+import { cheerVoice, preloadCheers, sayLine, stopVoice, unlockVoice } from "./companion/voice.ts";
 import { usePostSessionPrompt } from "./hooks/usePostSessionPrompt.ts";
 import { BottomNav } from "./components/BottomNav.tsx";
 import { NowCard } from "./components/NowCard.tsx";
@@ -66,6 +67,8 @@ export function App() {
   const openCompletion = useCallback((session: Session) => dialogs.openCompletion(session.id), [dialogs]);
   const voiceOn = state.companion.voice;
   const cheerTone = state.companion.cheerTone ?? "high";
+  const cheerToneRef = useRef(cheerTone);
+  cheerToneRef.current = cheerTone;
   useGoalVoice({
     state,
     category: activeCategory,
@@ -93,7 +96,7 @@ export function App() {
       return { state: result.state, result: result.outcome };
     });
     if (outcome.kind === "unassigned") return showToast("아직 연결되지 않은 버튼이에요.");
-    if (voiceOn) cheer(outcome.kind === "stopped" ? "stop" : "start", cheerTone);
+    if (voiceOn) cheerVoice(outcome.kind === "stopped" ? "stop" : "start", cheerTone);
     if (outcome.kind === "started") return showToast(`${outcome.category.name} 기록을 시작했어요.`);
     if (outcome.kind === "stopped") return openCompletion(outcome.session);
     prompt.show(outcome.session.id);
@@ -105,18 +108,23 @@ export function App() {
   // The toy speaks, the phone voices it, the board breathes its LEDs.
   const serialNudge = serial.nudge;
   const companion = useIdleNudge(state, useCallback((line: string) => {
-    if (voiceOn) speak(line);
+    if (voiceOn) void sayLine(line, cheerToneRef.current, 1.15);
     serialNudge(true);
   }, [voiceOn, serialNudge]));
   const companionActive = companion.nudge !== null;
   useEffect(() => {
     if (!companionActive) {
-      stopSpeaking();
+      stopVoice();
       serialNudge(false);
     }
   }, [companionActive, serialNudge]);
+  // The shouts must be instant, so their audio is fetched before any button is pressed.
+  useEffect(() => preloadCheers(cheerTone), [cheerTone]);
   useEffect(() => {
-    const prime = () => primeSpeech();
+    const prime = () => {
+      primeSpeech();
+      unlockVoice();
+    };
     window.addEventListener("pointerdown", prime, { once: true });
     window.addEventListener("keydown", prime, { once: true });
     return () => {
@@ -133,7 +141,7 @@ export function App() {
       return { state: result.state, result: result.completedSession };
     });
     if (!completed) return;
-    if (voiceOn) cheer("stop", cheerTone);
+    if (voiceOn) cheerVoice("stop", cheerTone);
     openCompletion(completed);
   }, [openCompletion, voiceOn, cheerTone]);
 
@@ -152,7 +160,7 @@ export function App() {
       return { state: result.state, result };
     });
     if (outcome.started) {
-      if (voiceOn) cheer("start", cheerTone);
+      if (voiceOn) cheerVoice("start", cheerTone);
       showToast(`${outcome.started.name} 기록을 시작했어요.`);
     } else if (outcome.alreadyRunning) revealActiveSession(outcome.alreadyRunning);
   }, [dialogs, showToast, revealActiveSession, voiceOn, cheerTone]);
@@ -292,7 +300,7 @@ export function App() {
           onVoiceChange={(voice) => commit((current) => actions.setCompanion(current, { voice }))}
           onCheerToneChange={(tone) => {
             commit((current) => actions.setCompanion(current, { cheerTone: tone }));
-            cheer("start", tone);
+            cheerVoice("start", tone);
           }}
           onIdleMinutesChange={(idleMinutes) => commit((current) => actions.setCompanion(current, { idleMinutes }))}
           onTestCompanion={() => {

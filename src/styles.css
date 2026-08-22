@@ -426,6 +426,7 @@ textarea:focus-visible,
 }
 
 .companion-controls { flex-wrap: wrap; justify-content: flex-end; }
+.companion-voice-name { margin-top: 6px !important; font-variant-numeric: tabular-nums; }
 .companion-toggle,
 .companion-threshold { display: inline-flex; align-items: center; gap: 8px; font-size: 0.86rem; font-weight: 600; white-space: nowrap; }
 .companion-toggle input { width: 18px; height: 18px; accent-color: var(--ink); }

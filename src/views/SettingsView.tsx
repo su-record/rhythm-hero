@@ -2,6 +2,7 @@ import { formatMinutes, safeColor } from "../domain/format.ts";
 import { allCompleted, categoryById, restorableSessions, selectableCategories } from "../domain/stats.ts";
 import { durationMs, localDateInput } from "../domain/time.ts";
 import type { AppState } from "../domain/types.ts";
+import { describeVoice } from "../companion/speech.ts";
 import { GOAL_TYPE_LABEL, goalTypeOf } from "../domain/goal.ts";
 import { TOY_COPY, toyArt } from "../domain/profile.ts";
 import type { GoalType } from "../domain/types.ts";
@@ -194,6 +195,7 @@ export function SettingsView({ state, active, deviceConnected, installState, ...
           <p className="eyebrow">장난감</p>
           <strong>조용하면 먼저 말을 걸어요</strong>
           <p>기록이 없는 시간이 길어지면 캐릭터가 한마디 하고, 보드 LED가 숨을 쉽니다. 밤 11시부터 아침 8시까지는 조용히 있어요.</p>
+          <p className="companion-voice-name">목소리: {describeVoice()}</p>
         </div>
         <div className="companion-controls">
           <label className="companion-toggle">

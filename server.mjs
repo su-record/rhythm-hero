@@ -177,6 +177,54 @@ async function createCompanionLine(request, response) {
   }
 }
 
+/* The toy's voice comes from the speech model. Lines repeat (시작!, 끝!, the
+   same nudges), so finished audio is kept in memory and a second request for
+   the same text costs nothing. */
+const SPEECH_MODEL = process.env.OPENAI_TTS_MODEL || "gpt-4o-mini-tts";
+const SPEECH_VOICE = process.env.OPENAI_TTS_VOICE || "nova";
+const SPEECH_STYLE = {
+  high: "작고 귀여운 장난감의 목소리. 밝고 높은 톤, 또렷한 발음, 신나게. 아주 짧게.",
+  normal: "친근한 장난감의 목소리. 자연스러운 톤, 또렷한 발음. 짧게.",
+};
+const speechCache = new Map();
+const SPEECH_CACHE_LIMIT = 200;
+
+function validSpeechRequest(value) {
+  return value && typeof value.text === "string" && value.text.trim().length > 0 && value.text.length <= 200
+    && (value.tone === undefined || value.tone === "high" || value.tone === "normal");
+}
+
+async function createSpeech(request, response) {
+  if (!process.env.OPENAI_API_KEY) return sendJson(response, 503, { error: "OPENAI_API_KEY is not configured" });
+  try {
+    const body = await readJson(request);
+    if (!validSpeechRequest(body)) return sendJson(response, 400, { error: "Invalid speech request" });
+    const tone = body.tone === "normal" ? "normal" : "high";
+    const key = `${tone}\u0000${body.text.trim()}`;
+    let audio = speechCache.get(key);
+    if (!audio) {
+      const result = await fetch("https://api.openai.com/v1/audio/speech", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
+        body: JSON.stringify({ model: SPEECH_MODEL, voice: SPEECH_VOICE, input: body.text.trim(), instructions: SPEECH_STYLE[tone], response_format: "mp3" }),
+      });
+      if (!result.ok) {
+        const detail = await result.text().catch(() => "");
+        console.error("OpenAI speech error", result.status, detail.slice(0, 200));
+        return sendJson(response, 502, { error: "Speech API request failed" });
+      }
+      audio = Buffer.from(await result.arrayBuffer());
+      if (speechCache.size >= SPEECH_CACHE_LIMIT) speechCache.delete(speechCache.keys().next().value);
+      speechCache.set(key, audio);
+    }
+    response.writeHead(200, { "Content-Type": "audio/mpeg", "Content-Length": audio.length, "Cache-Control": "private, max-age=86400" });
+    response.end(audio);
+  } catch (error) {
+    console.error("Speech endpoint error", error.message);
+    sendJson(response, 500, { error: "Unable to create speech" });
+  }
+}
+
 const server = createServer(async (request, response) => {
   const url = new URL(request.url, `http://${request.headers.host}`);
   const stateMatch = url.pathname.match(/^\/api\/state\/([a-zA-Z0-9_-]+)$/);
@@ -190,6 +238,10 @@ const server = createServer(async (request, response) => {
   }
   if (request.method === "POST" && request.url === "/api/companion") {
     createCompanionLine(request, response);
+    return;
+  }
+  if (request.method === "POST" && request.url === "/api/speech") {
+    createSpeech(request, response);
     return;
   }
   if (request.method !== "GET" && request.method !== "HEAD") {

@@ -1,5 +1,5 @@
 /* Bump CACHE alone to ship a new build: index.html no longer carries ?v= query strings. */
-const CACHE = "rhythm-hero-v25";
+const CACHE = "rhythm-hero-v27";
 const SHELL = "./index.html";
 const ASSETS = [
   "./",

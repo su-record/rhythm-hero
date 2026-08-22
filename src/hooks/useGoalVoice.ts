@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 
-import { speak } from "../companion/speech.ts";
+import { sayLine } from "../companion/voice.ts";
 import { countdown } from "../domain/goal.ts";
 import type { AppState, Category } from "../domain/types.ts";
 
@@ -43,7 +43,7 @@ export function useGoalVoice({ state, category, tick, voiceOn, onReached }: Goal
     if (reachedFor.current !== sessionId) {
       reachedFor.current = sessionId;
       overtimeSpoken.current = 0;
-      if (voiceOn) speak("다 채웠어! 멋지다.", { pitch: 1.3 });
+      if (voiceOn) void sayLine("다 채웠어! 멋지다.", "high", 1.3);
       onReached(category);
       return;
     }
@@ -51,7 +51,7 @@ export function useGoalVoice({ state, category, tick, voiceOn, onReached }: Goal
     if (due > overtimeSpoken.current) {
       overtimeSpoken.current = due;
       const line = OVERTIME_LINES[(due - 1) % OVERTIME_LINES.length] ?? OVERTIME_LINES[0]!;
-      if (voiceOn) speak(line, { pitch: 1.25 });
+      if (voiceOn) void sayLine(line, "high", 1.25);
     }
   }, [state, category, tick, voiceOn, sessionId, onReached]);
 }
