@@ -18,6 +18,7 @@ import { useKeyboardButtons } from "./hooks/useKeyboardButtons.ts";
 import { useTicker } from "./hooks/useTicker.ts";
 import { useToast } from "./hooks/useToast.ts";
 import { useIdleNudge } from "./hooks/useIdleNudge.ts";
+import { useGoalVoice } from "./hooks/useGoalVoice.ts";
 import { cheer, primeSpeech, speak, stopSpeaking } from "./companion/speech.ts";
 import { usePostSessionPrompt } from "./hooks/usePostSessionPrompt.ts";
 import { BottomNav } from "./components/BottomNav.tsx";
@@ -65,6 +66,13 @@ export function App() {
   const openCompletion = useCallback((session: Session) => dialogs.openCompletion(session.id), [dialogs]);
   const voiceOn = state.companion.voice;
   const cheerTone = state.companion.cheerTone ?? "high";
+  useGoalVoice({
+    state,
+    category: activeCategory,
+    tick,
+    voiceOn,
+    onReached: useCallback((category: Category) => showToast(`${category.name} 목표를 채웠어요.`), [showToast]),
+  });
   const prompt = usePostSessionPrompt(state, pending, dialogs.completionId !== null, dialogs.openCompletion);
 
   const switchTab = useCallback((next: TabId) => {

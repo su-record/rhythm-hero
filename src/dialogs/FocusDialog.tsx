@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 
 import { formatClock, formatMinutes, safeColor } from "../domain/format.ts";
-import { goalStanding } from "../domain/goal.ts";
+import { countdown, goalStanding } from "../domain/goal.ts";
 import { toyArt } from "../domain/profile.ts";
 import type { ActiveSession, AppState, Category } from "../domain/types.ts";
 import { durationMs } from "../domain/time.ts";
@@ -44,7 +44,9 @@ export function FocusDialog({ state, session, category, open, tick, onStop, onMi
   if (!session || !category) return <dialog className="focus-dialog" ref={ref} aria-labelledby="focus-title" />;
 
   const standing = goalStanding(state, category);
+  const clock = countdown(state, category);
   const elapsed = durationMs(session);
+  const reached = clock.hasGoal && clock.remainingMs === 0;
   void tick;
 
   return (
@@ -62,11 +64,23 @@ export function FocusDialog({ state, session, category, open, tick, onStop, onMi
             <ActivityIcon category={category} size="activity-icon-focus" />
             <h2 id="focus-title">{category.name}</h2>
           </div>
-          <p className="focus-clock" aria-live="off">{formatClock(elapsed)}</p>
-          <p className="focus-standing">
-            {standing.periodLabel} {formatMinutes(standing.minutes)}
-            {category.goal ? ` / ${formatMinutes(category.goal)}` : ""}
-          </p>
+          {clock.hasGoal ? (
+            <>
+              <p className={`focus-clock${reached ? " reached" : ""}`} aria-live="off">
+                {reached ? `+${formatClock(clock.overMs)}` : formatClock(clock.remainingMs)}
+              </p>
+              <p className="focus-standing">
+                {reached
+                  ? `${standing.periodLabel} 목표 ${formatMinutes(category.goal)} 채움 · 지금 ${formatClock(elapsed)}`
+                  : `${standing.periodLabel} 목표 ${formatMinutes(category.goal)}에서 남은 시간 · 지금 ${formatClock(elapsed)}`}
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="focus-clock" aria-live="off">{formatClock(elapsed)}</p>
+              <p className="focus-standing">{standing.periodLabel} {formatMinutes(standing.minutes)} · 목표 없이 기록</p>
+            </>
+          )}
           <div className="focus-ring" aria-hidden="true" style={{ ["--ratio" as string]: standing.ratio }} />
         </div>
 
