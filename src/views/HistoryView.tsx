@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { formatMinutes } from "../domain/format.ts";
 import { minutesFor, recentSessions, sessionsForDay } from "../domain/stats.ts";
@@ -9,6 +9,15 @@ import { Heatmap } from "../components/Heatmap.tsx";
 import { SessionList } from "../components/SessionList.tsx";
 
 const RECENT_SESSION_LIMIT = 8;
+const SHOW_MEMOS_KEY = "rhythm-hero-show-memos";
+
+function readShowMemos(): boolean {
+  try {
+    return localStorage.getItem(SHOW_MEMOS_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
 
 interface HistoryViewProps {
   state: AppState;
@@ -47,6 +56,16 @@ function summarise(state: AppState): HistorySummary {
 export function HistoryView({ state, active, pendingMemoCount, ...handlers }: HistoryViewProps) {
   const scroller = useRef<HTMLDivElement>(null);
   const { days, total, activeDays, summary, recent } = useMemo(() => summarise(state), [state]);
+  const [showMemos, setShowMemos] = useState(readShowMemos);
+  const memoCount = recent.filter((session) => session.memo).length;
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(SHOW_MEMOS_KEY, showMemos ? "1" : "0");
+    } catch {
+      /* Private mode: the choice just does not survive a reload. */
+    }
+  }, [showMemos]);
 
   // A 30 day map is scrolled to today; a 7 day map fits and stays at the start.
   useEffect(() => {
@@ -103,15 +122,27 @@ export function HistoryView({ state, active, pendingMemoCount, ...handlers }: Hi
 
       <section className="section-heading compact">
         <div><h2>최근 기록</h2></div>
-        <button
-          className={`text-button${pendingMemoCount ? "" : " hidden"}`}
-          type="button"
-          onClick={handlers.onReviewMemos}
-        >
-          메모 대기 <span>{pendingMemoCount}</span>
-        </button>
+        <div className="section-tools">
+          <button
+            className={`text-button${pendingMemoCount ? "" : " hidden"}`}
+            type="button"
+            onClick={handlers.onReviewMemos}
+          >
+            메모 대기 <span>{pendingMemoCount}</span>
+          </button>
+          <button
+            className={`text-button memo-toggle${showMemos ? " on" : ""}`}
+            type="button"
+            aria-pressed={showMemos}
+            disabled={!memoCount}
+            title={memoCount ? undefined : "메모가 있는 기록이 없어요"}
+            onClick={() => setShowMemos((value) => !value)}
+          >
+            {showMemos ? "한 줄 메모 숨기기" : "한 줄 메모 보기"}
+          </button>
+        </div>
       </section>
-      <SessionList state={state} sessions={recent} onOpen={handlers.onOpenSession} />
+      <SessionList state={state} sessions={recent} showMemos={showMemos} onOpen={handlers.onOpenSession} />
     </section>
   );
 }

@@ -7,10 +7,12 @@ import { ActivityIcon } from "./ActivityIcon.tsx";
 interface SessionListProps {
   state: AppState;
   sessions: Session[];
+  /** Show each record's one-line memo inline, without opening it. */
+  showMemos?: boolean;
   onOpen: (id: string) => void;
 }
 
-export function SessionList({ state, sessions, onOpen }: SessionListProps) {
+export function SessionList({ state, sessions, showMemos = false, onOpen }: SessionListProps) {
   if (!sessions.length) return <div className="session-list"><p className="page-intro">아직 완료된 기록이 없어요.</p></div>;
 
   return (
@@ -34,6 +36,7 @@ export function SessionList({ state, sessions, onOpen }: SessionListProps) {
             </span>
             {pending ? <span className="session-note-badge">메모 대기</span> : null}
             <span className="session-duration">{formatMinutes(durationMs(session) / 60_000)}</span>
+            {showMemos && session.memo ? <span className="session-memo">{session.memo}</span> : null}
           </button>
         );
       })}

@@ -1366,6 +1366,22 @@ textarea:focus-visible,
 .session-note-badge { color: var(--ink-soft); font-size: 0.7rem; font-weight: 650; white-space: nowrap; }
 .session-item.memo-pending { background: var(--surface-subtle); }
 
+/* The memo line sits under the whole row, right below the duration, in quiet grey. */
+.session-memo {
+  grid-column: 2 / -1;
+  margin-top: -4px;
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.session-item:has(.session-memo) { align-items: start; row-gap: 4px; }
+.session-item:has(.session-memo) .activity-icon-list { margin-top: 4px; }
+.memo-toggle.on { color: var(--ink); }
+.memo-toggle:disabled { color: var(--ink-faint); text-decoration: none; cursor: default; }
+
 /* Reflections */
 .reflection-hero .page-heading { align-items: center; }
 
