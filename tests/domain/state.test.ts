@@ -13,6 +13,7 @@ import type { AppState } from "../../src/domain/types.ts";
 
 function baseState(): AppState {
   return {
+    profile: null,
     companion: { voice: true, idleMinutes: 90 },
     categories: [{ id: "read", name: "독서", color: "#20D68A", goal: 60, status: "active" }],
     assignments: ["read"],
@@ -120,6 +121,7 @@ test("Active 4 rejects duplicates and unknown categories", () => {
 
 test("normalizeState repairs states written by older builds", () => {
   const legacy = {
+    profile: null,
     companion: { voice: true, idleMinutes: 90 },
     categories: [{ id: "read", name: "독서", color: "#8EB5E8", goal: 60 }],
     assignments: ["read"],

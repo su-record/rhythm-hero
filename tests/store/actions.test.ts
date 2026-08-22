@@ -17,6 +17,7 @@ import type { AppState, Session } from "../../src/domain/types.ts";
 
 function baseState(overrides: Partial<AppState> = {}): AppState {
   return {
+    profile: null,
     companion: { voice: true, idleMinutes: 90 },
     categories: [
       { id: "read", name: "독서", color: "#20D68A", goal: 60, status: "active" },

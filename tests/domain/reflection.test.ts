@@ -17,6 +17,7 @@ function session(id: string, categoryId: string, days: number, hour: number, min
 
 function stateWith(sessions: Session[]): AppState {
   return {
+    profile: null,
     companion: { voice: true, idleMinutes: 90 },
     categories: [
       { id: "read", name: "독서", color: "#20D68A", goal: 60, status: "active" },

@@ -28,6 +28,7 @@ export function useIdleNudge(state: AppState, onNudge: (line: string) => void): 
   const fire = useCallback((force: boolean) => {
     const { state: current, onNudge: notify } = latest.current;
     const now = new Date();
+    if (!current.profile) return;              // nobody to talk to yet
     const check = checkIdle(current, current.companion, now);
     if (!force && !check.idle) return;
     const anchor = `${now.toDateString()}:${current.sessions.filter((session) => session.status === "completed").length}`;

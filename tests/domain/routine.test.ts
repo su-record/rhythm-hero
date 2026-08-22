@@ -28,6 +28,7 @@ function session(id: string, categoryId: string, daysAgo: number, hour: number, 
 
 function state(sessions: Session[], overrides: Partial<AppState> = {}): AppState {
   return {
+    profile: null,
     companion: { voice: true, idleMinutes: 90 },
     categories: [
       { id: "move", name: "운동", color: "#FF5D52", goal: 30, status: "active" },

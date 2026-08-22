@@ -2,6 +2,7 @@ import { formatMinutes, safeColor } from "../domain/format.ts";
 import { allCompleted, categoryById, restorableSessions, selectableCategories } from "../domain/stats.ts";
 import { durationMs, localDateInput } from "../domain/time.ts";
 import type { AppState } from "../domain/types.ts";
+import { TOY_COPY, toyArt } from "../domain/profile.ts";
 import { ActivityIcon } from "../components/ActivityIcon.tsx";
 import { InstallPanel } from "../components/InstallPanel.tsx";
 import type { InstallState } from "../pwa/useInstallPrompt.ts";
@@ -15,6 +16,7 @@ interface SettingsViewProps {
   onVoiceChange: (voice: boolean) => void;
   onIdleMinutesChange: (minutes: number) => void;
   onTestCompanion: () => void;
+  onEditProfile: () => void;
   onAssign: (slot: number, categoryId: string) => void;
   onGoalChange: (categoryId: string, goal: number) => void;
   onEditCategory: (id: string) => void;
@@ -63,6 +65,19 @@ export function SettingsView({ state, active, deviceConnected, installState, ...
           <h1 id="settings-title">설정</h1>
         </div>
       </div>
+
+      <section className="settings-section profile-panel">
+        <button className="profile-card" type="button" onClick={handlers.onEditProfile} aria-label="장난감과 이름 바꾸기">
+          <span className="profile-card-art" aria-hidden="true">
+            <img src={toyArt(state.profile?.toy ?? "spike", false)} alt="" draggable={false} />
+          </span>
+          <span className="profile-card-copy">
+            <strong>{state.profile ? `${state.profile.name}의 기록` : "아직 주인이 없어요"}</strong>
+            <span>{state.profile ? `${state.profile.toyName} · ${TOY_COPY[state.profile.toy].label}와 함께` : "장난감을 골라 시작하세요"}</span>
+          </span>
+          <span className="category-manager-edit-icon" aria-hidden="true">›</span>
+        </button>
+      </section>
 
       <section className="settings-section">
         <div className="section-heading compact">

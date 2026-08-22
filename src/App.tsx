@@ -30,6 +30,7 @@ import { CategoryDetailDialog } from "./dialogs/CategoryDetailDialog.tsx";
 import { CategoryDialog } from "./dialogs/CategoryDialog.tsx";
 import { CompletionDialog } from "./dialogs/CompletionDialog.tsx";
 import { DeviceDialog } from "./dialogs/DeviceDialog.tsx";
+import { ProfileDialog } from "./dialogs/ProfileDialog.tsx";
 import { RecordDialog } from "./dialogs/RecordDialog.tsx";
 import { SessionDialog } from "./dialogs/SessionDialog.tsx";
 import { HistoryView } from "./views/HistoryView.tsx";
@@ -42,6 +43,8 @@ export function App() {
   const state = useAppState();
   const [tab, setTab] = useState<TabId>("today");
   const [aiPending, setAiPending] = useState(false);
+  const [profileEditing, setProfileEditing] = useState(false);
+  const profileOpen = state.profile === null || profileEditing;
   const nowCard = useRef<HTMLElement>(null);
   const { message, showToast } = useToast();
   const syncStatus = useRemoteSync();
@@ -276,6 +279,7 @@ export function App() {
             switchTab("today");
             companion.trigger();
           }}
+          onEditProfile={() => setProfileEditing(true)}
           onAssign={assignSlot}
           onGoalChange={(id, goal) => {
             commit((current) => actions.setCategoryGoal(current, id, goal));
@@ -295,7 +299,7 @@ export function App() {
           }}
           onExport={exportData}
           onResetDemo={() => {
-            commit(() => actions.resetDemo());
+            commit((current) => actions.resetDemo(current));
             showToast("데모 데이터를 다시 불러왔어요.");
           }}
         />
@@ -305,6 +309,17 @@ export function App() {
 
       <PostSessionPrompt copy={prompt.copy} onWrite={prompt.write} onDismiss={prompt.hide} />
 
+      <ProfileDialog
+        open={profileOpen}
+        current={state.profile}
+        onClose={() => setProfileEditing(false)}
+        onSave={(profile) => {
+          const firstRun = state.profile === null;
+          commit((current) => actions.setProfile(current, profile));
+          setProfileEditing(false);
+          showToast(firstRun ? `${profile.name}, 반가워요. ${profile.toyName}가 기다리고 있어요.` : "바꿨어요.");
+        }}
+      />
       <Active4Dialog state={state} open={dialogs.active4Open} onClose={dialogs.closeActive4} onSave={saveAssignments} />
       <RecordDialog state={state} open={dialogs.recordOpen} onClose={dialogs.closeRecord} onStart={startFromApp} />
       <CategoryDetailDialog

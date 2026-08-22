@@ -105,7 +105,18 @@ export interface CompanionSettings {
   idleMinutes: number;
 }
 
+export type ToyFamily = "spike" | "bouncer";
+
+/** Who this device's records belong to. No login: the toy you pick is your identity. */
+export interface Profile {
+  name: string;
+  toy: ToyFamily;
+  toyName: string;
+  createdAt: string;
+}
+
 export interface AppState {
+  profile: Profile | null;
   companion: CompanionSettings;
   categories: Category[];
   assignments: string[];

@@ -15,6 +15,7 @@ function jsonResponse(body: unknown, status = 200): Response {
 }
 
 const sampleState: AppState = {
+  profile: null,
   companion: { voice: true, idleMinutes: 90 },
   categories: [{ id: "read", name: "독서", color: "#20D68A", goal: 60, status: "active" }],
   assignments: ["read"],

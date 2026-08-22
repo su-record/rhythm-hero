@@ -91,9 +91,10 @@ function RoutineCard({ card, index }: { card: DayCard; index: number }) {
 interface RoutineDeckProps {
   cards: DayCard[];
   routineLabel: string;
+  ownerName: string | null;
 }
 
-export function RoutineDeck({ cards, routineLabel }: RoutineDeckProps) {
+export function RoutineDeck({ cards, routineLabel, ownerName }: RoutineDeckProps) {
   const scroller = useRef<HTMLDivElement>(null);
   const [current, setCurrent] = useState(0);
 
@@ -120,7 +121,7 @@ export function RoutineDeck({ cards, routineLabel }: RoutineDeckProps) {
     <section className="routine-deck" aria-labelledby="today-title">
       <div className="section-heading routine-heading">
         <div>
-          <h1 id="today-title">나의 리듬</h1>
+          <h1 id="today-title">{ownerName ? `${ownerName}의 리듬` : "나의 리듬"}</h1>
           <p>{routineLabel}</p>
         </div>
       </div>

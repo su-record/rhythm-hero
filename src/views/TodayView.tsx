@@ -42,13 +42,14 @@ export function TodayView({ state, active, tick, insight, pendingMemos, companio
   return (
     <section className={`view${active ? " active" : ""}`} id="view-today" aria-labelledby="today-title">
       <Companion
+        profile={state.profile}
         mood={mood}
         runningCategory={activeCategory}
         line={companionLine}
         onDismiss={handlers.onDismissCompanion}
         onPoke={handlers.onPokeCompanion}
       />
-      <RoutineDeck cards={dayCards} routineLabel={routineLabel} />
+      <RoutineDeck cards={dayCards} routineLabel={routineLabel} ownerName={state.profile?.name ?? null} />
 
       <section className="section-heading">
         <div>

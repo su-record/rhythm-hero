@@ -22,6 +22,7 @@ function completed(id: string, categoryId: string, endHour: number, endMinute = 
 
 function state(overrides: Partial<AppState> = {}): AppState {
   return {
+    profile: null,
     companion: { ...DEFAULT_COMPANION },
     categories: [
       { id: "read", name: "독서", color: "#20D68A", goal: 60, status: "active" },
