@@ -1,5 +1,5 @@
 ---
-status: pending
+status: complete
 phase: 3
 lastUpdated: 2026-08-22
 ---
@@ -106,3 +106,29 @@ createStore(initial): {
 - [ ] AC-5: 동일 값으로 dispatch하면 구독자에게 통지하지 않는다
 - [ ] AC-6: `src/store/`에 도메인 계산식이 **0건**이다 (전부 `src/domain/` 호출)
 </acceptance>
+
+## 구현 결과 (2026-08-22)
+
+| AC | 결과 | 실측 |
+|----|------|------|
+| AC-1 기존 데이터 호환 | ✅ | `STORAGE_KEY`/`CLIENT_ID_KEY` 그대로, `normalizeState` 경유 로드 |
+| AC-2 저장소 폴백 | ✅ | 예외를 던지는 localStorage / 아예 없는 환경 모두 테스트로 덮음 |
+| AC-3 650ms 디바운스 | ✅ | `createDebouncer`를 분리해 가짜 타이머로 검증 (3연속 변경 → 1회 write) |
+| AC-4 React 밖 접근 | ✅ | `installHabitToyBridge`가 스토어를 직접 읽고 쓴다 |
+| AC-5 동일 값 무통지 | ✅ | `store.update`가 참조 동일 시 구독자 통지 생략, 테스트로 확인 |
+| AC-6 스토어에 도메인 계산 0 | ✅ | `60_000` 등 시간 연산 잔존 0건 (`endTimeFor`로 이관) |
+
+전체 테스트 **28개 → 55개**.
+
+### 설계상 정정 1건
+
+`useSyncExternalStore`용 셀렉터 훅을 처음에 `useAppState(selector)` 형태로 만들었으나, 인라인 셀렉터가 매 호출 새 객체를 반환하면 스냅샷 비교가 항상 실패해 **무한 렌더**에 빠진다. 다음으로 교체했다.
+
+- `useAppState()` — 상태 전체 구독. 스토어 쓰기는 사용자 조작 시에만 발생하므로 비용이 낮고, 파생값은 컴포넌트의 `useMemo`가 담당한다.
+- `useAppStateField(selector)` — 모듈 스코프에 정의된 안정적 셀렉터 전용. 계약을 주석으로 명시했다.
+
+1초 시계는 스토어를 건드리지 않는 별도 티커이므로 Phase 4의 "카드 재생성 0건" 기준과 충돌하지 않는다.
+
+### 추가 분리
+- `isDuplicateCategoryName`을 `src/domain/state.ts`로 이동 — 카테고리에 대한 순수 술어이므로 도메인에 속한다.
+- `endTimeFor`를 `src/domain/time.ts`에 추가 — 스토어에 남아 있던 마지막 시간 연산을 걷어냈다.

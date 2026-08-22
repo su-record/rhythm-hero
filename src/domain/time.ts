@@ -69,3 +69,8 @@ export function localTimeInput(value: Date | string): string {
   const date = new Date(value);
   return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
 }
+
+/** The end timestamp for a session of a given length, as the edit dialog states it. */
+export function endTimeFor(startedAt: Date | string, minutes: number): string {
+  return new Date(new Date(startedAt).getTime() + minutes * 60_000).toISOString();
+}

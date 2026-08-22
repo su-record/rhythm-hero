@@ -152,3 +152,10 @@ export function getPendingMemoSessionIds(state: AppState): string[] {
     .sort((left, right) => new Date(left.endedAt || left.startedAt).getTime() - new Date(right.endedAt || right.startedAt).getTime())
     .map((session) => session.id);
 }
+
+export function isDuplicateCategoryName(state: AppState, name: string, editingId: string | null): boolean {
+  const normalized = name.trim().toLocaleLowerCase("ko-KR");
+  return state.categories.some(
+    (category) => category.id !== editingId && category.name.trim().toLocaleLowerCase("ko-KR") === normalized,
+  );
+}
