@@ -305,7 +305,7 @@ export function App() {
         />
       </main>
 
-      <BottomNav tab={tab} runningCategoryName={activeCategory?.name ?? null} onSelect={switchTab} />
+      <BottomNav tab={tab} runningCategoryName={activeCategory?.name ?? null} profile={state.profile} onSelect={switchTab} />
 
       <PostSessionPrompt copy={prompt.copy} onWrite={prompt.write} onDismiss={prompt.hide} />
 

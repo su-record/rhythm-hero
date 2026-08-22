@@ -1,19 +1,22 @@
+import { toyArt } from "../domain/profile.ts";
+import type { Profile } from "../domain/types.ts";
 import type { TabId } from "../types.ts";
 
 const TABS: Array<{ id: TabId; label: string; icon: string }> = [
-  { id: "today", label: "오늘", icon: "nav-icon-today" },
-  { id: "history", label: "기록", icon: "nav-icon-history" },
+  { id: "today", label: "홈", icon: "nav-icon-today" },
+  { id: "history", label: "흐름", icon: "nav-icon-history" },
   { id: "reflections", label: "돌아보기", icon: "nav-icon-reflection" },
-  { id: "settings", label: "설정", icon: "nav-icon-settings" },
+  { id: "settings", label: "나", icon: "nav-icon-settings" },
 ];
 
 interface BottomNavProps {
   tab: TabId;
   runningCategoryName: string | null;
+  profile: Profile | null;
   onSelect: (tab: TabId) => void;
 }
 
-export function BottomNav({ tab, runningCategoryName, onSelect }: BottomNavProps) {
+export function BottomNav({ tab, runningCategoryName, profile, onSelect }: BottomNavProps) {
   return (
     <nav
       className={`bottom-nav${runningCategoryName ? " has-active-session" : ""}`}
@@ -28,8 +31,12 @@ export function BottomNav({ tab, runningCategoryName, onSelect }: BottomNavProps
           aria-controls={`view-${item.id}`}
           onClick={() => onSelect(item.id)}
         >
-          <span className={`nav-icon ${item.icon}`} aria-hidden="true" />
-          {item.label}
+          {item.id === "settings" && profile ? (
+            <span className="nav-icon nav-icon-toy" aria-hidden="true"><img src={toyArt(profile.toy, false)} alt="" draggable={false} /></span>
+          ) : (
+            <span className={`nav-icon ${item.icon}`} aria-hidden="true" />
+          )}
+          <span className="nav-label">{item.label}</span>
         </button>
       ))}
     </nav>

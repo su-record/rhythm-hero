@@ -65,7 +65,7 @@ export function HistoryView({ state, active, pendingMemoCount, ...handlers }: Hi
       <div className="page-heading">
         <div>
           <p className="eyebrow">{`최근 ${state.historyRange}일`}</p>
-          <h1 id="history-title">기록</h1>
+          <h1 id="history-title">흐름</h1>
         </div>
         <div className="segmented" role="group" aria-label="기록 기간">
           {([7, 30] as PeriodRange[]).map((range) => (

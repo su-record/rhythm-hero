@@ -62,7 +62,7 @@ export function SettingsView({ state, active, deviceConnected, installState, ...
       <div className="page-heading">
         <div>
           <p className="eyebrow">나에게 맞추기</p>
-          <h1 id="settings-title">설정</h1>
+          <h1 id="settings-title">나</h1>
         </div>
       </div>
 

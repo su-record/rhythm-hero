@@ -314,9 +314,29 @@ textarea:focus-visible,
   display: grid;
   justify-items: center;
   gap: 6px;
-  margin: 18px 0 6px;
-  padding-top: 8px;
+  margin: 14px 0 10px;
+  padding: 14px 0 12px;
 }
+
+/* A soft ground under the toy: a wide ellipse that breathes with it. */
+.companion::before {
+  position: absolute;
+  z-index: 0;
+  left: 50%;
+  bottom: 26px;
+  width: 200px;
+  height: 54px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--stage, var(--surface-pressed)) 70%, transparent), transparent);
+  transform: translateX(-50%);
+  animation: companion-ground 3.6s ease-in-out infinite;
+  content: "";
+}
+
+.companion-waiting { --stage: #F2D2D8; }
+.companion-talking { --stage: #F2D2D8; }
+.companion-running { --stage: #CDEFFB; }
+.companion-figure, .companion-bubble, .companion-caption { position: relative; z-index: 1; }
 
 .companion-figure {
   position: relative;
@@ -410,6 +430,11 @@ textarea:focus-visible,
 .companion-threshold { display: inline-flex; align-items: center; gap: 8px; font-size: 0.86rem; font-weight: 600; white-space: nowrap; }
 .companion-toggle input { width: 18px; height: 18px; accent-color: var(--ink); }
 .companion-threshold input { width: 64px; min-height: 40px; padding: 0 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); text-align: center; }
+
+@keyframes companion-ground {
+  0%, 100% { transform: translateX(-50%) scaleX(1); opacity: 0.9; }
+  50% { transform: translateX(-50%) scaleX(0.92); opacity: 0.6; }
+}
 
 @keyframes companion-pop {
   from { opacity: 0; transform: translateY(6px) scale(0.96); }
@@ -677,19 +702,29 @@ textarea:focus-visible,
   align-items: stretch;
   padding: 21px;
   overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  background: var(--canvas);
+  border: 1px solid color-mix(in srgb, var(--category) 22%, var(--line));
+  border-radius: 22px;
+  background:
+    radial-gradient(110% 80% at 100% 100%, color-mix(in srgb, var(--category) 16%, transparent), transparent 62%),
+    var(--canvas);
   color: var(--ink);
   text-align: left;
-  transition: border-color var(--ease), background-color var(--ease), transform 100ms ease;
+  transition: border-color var(--ease), background-color var(--ease), transform 100ms ease, box-shadow var(--ease);
 }
+
+.category-card:hover { box-shadow: 0 10px 26px color-mix(in srgb, var(--category) 18%, transparent); }
+.category-card:active { transform: translateY(1px) scale(0.99); }
 
 .category-card.running {
   border: 2px solid var(--category);
   padding: 20px;
-  background: var(--category-soft);
+  background:
+    radial-gradient(110% 80% at 100% 100%, color-mix(in srgb, var(--category) 30%, transparent), transparent 62%),
+    color-mix(in srgb, var(--category) 8%, var(--canvas));
+  box-shadow: 0 12px 30px color-mix(in srgb, var(--category) 24%, transparent);
 }
+
+.category-card.goal-complete .card-status { color: var(--category); }
 
 .card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
 
@@ -699,9 +734,10 @@ textarea:focus-visible,
   min-width: 26px;
   height: 26px;
   padding: 0 7px;
-  border: 1px solid var(--line-strong);
+  border: 1px solid color-mix(in srgb, var(--category) 40%, var(--line-strong));
   border-radius: 999px;
-  color: var(--ink-soft);
+  background: color-mix(in srgb, var(--category) 10%, var(--canvas));
+  color: var(--ink);
   font-size: 0.72rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
@@ -721,8 +757,8 @@ textarea:focus-visible,
 
 .category-time {
   margin-top: 2px;
-  font-size: 1.68rem;
-  font-weight: 760;
+  font-size: 1.9rem;
+  font-weight: 820;
   line-height: 1.15;
   letter-spacing: -0.045em;
   font-variant-numeric: tabular-nums;
@@ -731,7 +767,7 @@ textarea:focus-visible,
 .progress-track {
   display: block;
   width: 100%;
-  height: 4px;
+  height: 6px;
   margin-top: auto;
   overflow: hidden;
   border-radius: 99px;
@@ -1496,6 +1532,29 @@ input[type="color"] { min-width: 70px; padding: 5px; }
 .nav-item.active { color: var(--ink); font-weight: 750; }
 .nav-icon { position: relative; display: block; width: 22px; height: 22px; color: currentColor; }
 
+/* The active tab sits on a soft pill; the icon lifts a touch. */
+.nav-label { position: relative; z-index: 1; }
+.nav-item::before {
+  position: absolute;
+  width: 52px;
+  height: 32px;
+  margin-top: -4px;
+  border-radius: 999px;
+  background: var(--surface-pressed);
+  opacity: 0;
+  transform: scale(0.85);
+  transition: opacity var(--ease), transform var(--ease);
+  content: "";
+}
+.nav-item { position: relative; }
+.nav-item .nav-icon { position: relative; z-index: 1; transition: transform var(--ease); }
+.nav-item.active::before { opacity: 1; transform: scale(1); }
+.nav-item.active .nav-icon { transform: translateY(-1px); }
+
+.nav-icon-toy { display: grid; place-items: center; width: 26px; height: 24px; margin-top: -2px; }
+.nav-icon-toy img { width: 100%; height: 100%; object-fit: contain; filter: grayscale(1) opacity(0.55); transition: filter var(--ease); }
+.nav-item.active .nav-icon-toy img { filter: none; }
+
 .nav-icon-today::before {
   position: absolute;
   top: 3px;
@@ -1756,7 +1815,7 @@ input[type="color"] { min-width: 70px; padding: 5px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .companion-figure img, .companion-bubble, .routine-live, .routine-segment.running, .toy-option-active { animation: none; }
+  .companion-figure img, .companion-bubble, .companion::before, .routine-live, .routine-segment.running, .toy-option-active { animation: none; }
   .routine-scroller { scroll-behavior: auto; }
   html { scroll-behavior: auto; }
   *, *::before, *::after {
