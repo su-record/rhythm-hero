@@ -907,6 +907,28 @@ textarea:focus-visible,
 
 .now-open { display: contents; }
 
+/* Goal dialog */
+.goal-dialog { width: min(calc(100% - 24px), 520px); }
+.goal-dialog-unit { margin-top: 4px; grid-template-columns: 1fr auto; }
+.slot-picker { display: grid; gap: 8px; }
+.slot-option {
+  display: grid;
+  grid-template-columns: 24px 38px 1fr;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--category) 8%, var(--canvas));
+  text-align: left;
+  transition: border-color var(--ease), transform 100ms ease;
+}
+.slot-option:hover { border-color: var(--category); }
+.slot-option:active { transform: scale(0.99); }
+.slot-option-copy { display: grid; gap: 2px; }
+.slot-option-copy strong { font-size: 0.95rem; font-weight: 750; }
+.slot-option-copy span { color: var(--ink-soft); font-size: 0.78rem; }
+
 /* Today */
 .today-overview { padding-top: 6px; }
 .total-block { margin-top: 34px; }

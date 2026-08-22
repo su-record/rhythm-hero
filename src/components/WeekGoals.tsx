@@ -15,7 +15,7 @@ export function WeekGoals({ progress, summary, onEditGoals }: WeekGoalsProps) {
           <h2 id="week-goals-title">이번 주</h2>
           <p>{summary}</p>
         </div>
-        <button className="edit-link" type="button" onClick={onEditGoals}>목표</button>
+        <button className="edit-link" type="button" onClick={onEditGoals}>+ 목표 추가</button>
       </div>
       {progress.length ? (
         <ul className="week-goal-list">
@@ -40,7 +40,7 @@ export function WeekGoals({ progress, summary, onEditGoals }: WeekGoalsProps) {
           ))}
         </ul>
       ) : (
-        <button className="week-goal-empty" type="button" onClick={onEditGoals}>주간 목표 정하기</button>
+        <button className="week-goal-empty" type="button" onClick={onEditGoals}>+ 한 주 목표 추가</button>
       )}
     </section>
   );

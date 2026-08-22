@@ -33,6 +33,7 @@ import { CategoryDialog } from "./dialogs/CategoryDialog.tsx";
 import { CompletionDialog } from "./dialogs/CompletionDialog.tsx";
 import { DeviceDialog } from "./dialogs/DeviceDialog.tsx";
 import { FocusDialog } from "./dialogs/FocusDialog.tsx";
+import { GoalDialog } from "./dialogs/GoalDialog.tsx";
 import { OnboardingDialog } from "./dialogs/OnboardingDialog.tsx";
 import { ProfileDialog } from "./dialogs/ProfileDialog.tsx";
 import { completeOnboarding } from "./domain/onboarding.ts";
@@ -50,6 +51,7 @@ export function App() {
   const [aiPending, setAiPending] = useState(false);
   const [profileEditing, setProfileEditing] = useState(false);
   const [focusOpen, setFocusOpen] = useState(false);
+  const [goalDialog, setGoalDialog] = useState<{ open: boolean; pendingId: string | null }>({ open: false, pendingId: null });
   const activeSessionId = state.activeSession?.id ?? null;
   // Every new session opens the focus screen; stopping closes it.
   useEffect(() => setFocusOpen(Boolean(activeSessionId)), [activeSessionId]);
@@ -268,7 +270,7 @@ export function App() {
           onPressButton={pressButton}
           onManualStart={() => (activeCategory ? revealActiveSession(activeCategory) : dialogs.openRecord())}
           onWriteMemo={openNextPendingMemo}
-          onEditGoals={() => switchTab("settings")}
+          onEditGoals={() => setGoalDialog({ open: true, pendingId: null })}
           onEditActive4={() => (state.activeSession
             ? showToast("진행 중인 기록을 종료한 뒤 나의 네 가지를 편집해주세요.")
             : dialogs.openActive4())}
@@ -346,6 +348,42 @@ export function App() {
 
       <PostSessionPrompt copy={prompt.copy} onWrite={prompt.write} onDismiss={prompt.hide} />
 
+      <GoalDialog
+        state={state}
+        open={goalDialog.open}
+        pendingCategoryId={goalDialog.pendingId}
+        onClose={() => setGoalDialog({ open: false, pendingId: null })}
+        onSave={(draft) => {
+          const placed = commitWith((current) => {
+            const created = actions.upsertCategory(current, draft, null);
+            const assigned = actions.assignToFreeButton(created.state, created.categoryId);
+            return { state: assigned.state, result: { categoryId: created.categoryId, placed: assigned.placed } };
+          });
+          if (placed.placed) {
+            setGoalDialog({ open: false, pendingId: null });
+            showToast(`${draft.name} 목표를 ${state.assignments.length + 1}번 버튼에 올렸어요.`);
+          } else {
+            setGoalDialog({ open: true, pendingId: placed.categoryId });
+          }
+        }}
+        onPlace={(slot) => {
+          const pendingId = goalDialog.pendingId;
+          if (!pendingId) return;
+          if (state.activeSession) {
+            showToast("진행 중인 기록을 종료한 뒤 버튼을 바꿀 수 있어요. 목록에는 추가됐어요.");
+            setGoalDialog({ open: false, pendingId: null });
+            return;
+          }
+          const previous = categoryById(state, state.assignments[slot] ?? "");
+          commit((current) => applyActiveAssignments(current, placeCategoryInSlot(current.assignments, slot, pendingId)));
+          setGoalDialog({ open: false, pendingId: null });
+          showToast(`${categoryById(state, pendingId)?.name ?? ""}을 ${slot + 1}번 버튼에 올렸어요. ${previous?.name ?? ""} 기록은 그대로예요.`);
+        }}
+        onKeepInList={() => {
+          setGoalDialog({ open: false, pendingId: null });
+          showToast("목록에 추가했어요. 흐름 탭의 모든 활동에서 버튼에 올릴 수 있어요.");
+        }}
+      />
       <FocusDialog
         state={state}
         session={state.activeSession}

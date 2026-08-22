@@ -216,3 +216,12 @@ export function setCompanion(state: AppState, patch: Partial<CompanionSettings>)
 export function startOver(state: AppState): AppState {
   return { ...createDefaultState(), profile: null, sessions: [], companion: state.companion };
 }
+
+export const BUTTON_COUNT = 4;
+
+/** A new activity takes the next free button; with all four taken the caller must ask which to replace. */
+export function assignToFreeButton(state: AppState, categoryId: string): { state: AppState; placed: boolean } {
+  if (state.assignments.includes(categoryId)) return { state, placed: true };
+  if (state.assignments.length >= BUTTON_COUNT) return { state, placed: false };
+  return { state: { ...state, assignments: [...state.assignments, categoryId] }, placed: true };
+}
