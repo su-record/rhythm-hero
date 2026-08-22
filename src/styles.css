@@ -1508,120 +1508,65 @@ input[type="color"] { min-width: 70px; padding: 5px; }
   grid-template-columns: repeat(4, 1fr);
   width: min(100%, var(--shell-width));
   min-height: calc(var(--nav-height) + env(safe-area-inset-bottom));
-  padding: 6px 12px env(safe-area-inset-bottom);
+  padding: 8px 8px calc(6px + env(safe-area-inset-bottom));
   transform: translateX(-50%);
   border-top: 1px solid var(--line);
-  background: var(--canvas);
+  background: color-mix(in srgb, var(--canvas) 92%, transparent);
+  backdrop-filter: saturate(160%) blur(14px);
+  -webkit-backdrop-filter: saturate(160%) blur(14px);
 }
 
 .nav-item {
   display: flex;
   min-width: 0;
-  min-height: 58px;
+  min-height: 56px;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 5px;
+  gap: 4px;
+  padding: 0;
+  border-radius: 14px;
   background: transparent;
-  color: var(--ink-soft);
-  font-size: 0.68rem;
+  color: var(--ink-faint);
+  font-size: 0.7rem;
   font-weight: 600;
   line-height: 1;
+  letter-spacing: -0.01em;
+  transition: color var(--ease), transform 120ms ease;
 }
 
+.nav-item:active { transform: scale(0.94); }
 .nav-item.active { color: var(--ink); font-weight: 750; }
-.nav-icon { position: relative; display: block; width: 22px; height: 22px; color: currentColor; }
+.nav-item:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
 
-/* The active tab sits on a soft pill; the icon lifts a touch. */
-.nav-label { position: relative; z-index: 1; }
-.nav-item::before {
-  position: absolute;
-  width: 52px;
-  height: 32px;
-  margin-top: -4px;
-  border-radius: 999px;
-  background: var(--surface-pressed);
-  opacity: 0;
-  transform: scale(0.85);
-  transition: opacity var(--ease), transform var(--ease);
-  content: "";
-}
-.nav-item { position: relative; }
-.nav-item .nav-icon { position: relative; z-index: 1; transition: transform var(--ease); }
-.nav-item.active::before { opacity: 1; transform: scale(1); }
-.nav-item.active .nav-icon { transform: translateY(-1px); }
+.nav-svg { width: 26px; height: 26px; display: block; }
+.nav-label { display: block; }
 
-.nav-icon-toy { display: grid; place-items: center; width: 26px; height: 24px; margin-top: -2px; }
-.nav-icon-toy img { width: 100%; height: 100%; object-fit: contain; filter: grayscale(1) opacity(0.55); transition: filter var(--ease); }
-.nav-item.active .nav-icon-toy img { filter: none; }
-
-.nav-icon-today::before {
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 6px;
-  height: 6px;
-  border-radius: 2px;
-  background: currentColor;
-  box-shadow: 10px 0 currentColor, 0 10px currentColor, 10px 10px currentColor;
-  content: "";
-}
-
-.nav-icon-history::before,
-.nav-icon-history::after {
-  position: absolute;
-  bottom: 3px;
-  width: 4px;
-  border: 1.5px solid currentColor;
-  border-radius: 2px 2px 0 0;
-  content: "";
-}
-
-.nav-icon-history::before { left: 3px; height: 8px; box-shadow: 7px -5px 0 -1.5px var(--canvas), 7px -5px 0 0 currentColor; }
-.nav-icon-history::after { right: 3px; height: 16px; }
-
-.nav-icon-reflection::before {
-  position: absolute;
-  inset: 3px;
-  border: 1.8px solid currentColor;
+/* The 나 tab is the chosen toy: a small round badge that wakes up in colour when active. */
+.nav-avatar {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  overflow: hidden;
+  border: 1.6px solid currentColor;
   border-radius: 50%;
-  content: "";
+  background: var(--canvas);
+  transition: border-color var(--ease), box-shadow var(--ease);
 }
 
-.nav-icon-reflection::after {
-  position: absolute;
-  top: 7px;
-  left: 10px;
-  width: 1.8px;
-  height: 7px;
-  transform-origin: bottom;
-  transform: rotate(38deg);
-  border-radius: 2px;
-  background: currentColor;
-  content: "";
+.nav-avatar img {
+  width: 84%;
+  height: 84%;
+  object-fit: contain;
+  filter: grayscale(1) opacity(0.5);
+  transition: filter var(--ease);
 }
 
-.nav-icon-settings::before {
-  position: absolute;
-  top: 4px;
-  left: 4px;
-  width: 14px;
-  height: 14px;
-  border: 1.8px solid currentColor;
-  border-radius: 5px;
-  content: "";
-}
+.nav-avatar-empty { width: 10px; height: 10px; border-radius: 50%; background: currentColor; opacity: 0.5; }
+.nav-item.active .nav-avatar { box-shadow: 0 0 0 2px var(--canvas), 0 0 0 3.5px var(--ink); }
+.nav-item.active .nav-avatar img { filter: none; }
 
-.nav-icon-settings::after {
-  position: absolute;
-  top: 8px;
-  left: 8px;
-  width: 6px;
-  height: 6px;
-  border: 1.5px solid currentColor;
-  border-radius: 50%;
-  content: "";
-}
 
 .post-session-prompt {
   position: fixed;
