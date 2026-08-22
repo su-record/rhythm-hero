@@ -326,6 +326,11 @@ export function App() {
             commit((current) => actions.resetDemo(current));
             showToast("데모 데이터를 다시 불러왔어요.");
           }}
+          onStartOver={() => {
+            if (!window.confirm("기록과 활동, 이름을 모두 지우고 온보딩부터 다시 시작할까요?")) return;
+            commit((current) => actions.startOver(current));
+            switchTab("today");
+          }}
         />
       </main>
 

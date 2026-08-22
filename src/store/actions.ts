@@ -211,3 +211,8 @@ export function setCompanion(state: AppState, patch: Partial<CompanionSettings>)
   if (next.voice === state.companion.voice && next.idleMinutes === state.companion.idleMinutes && next.cheerTone === state.companion.cheerTone) return state;
   return { ...state, companion: next };
 }
+
+/** Back to the very first screen: no owner, no activities, no records. Companion settings stay. */
+export function startOver(state: AppState): AppState {
+  return { ...createDefaultState(), profile: null, sessions: [], companion: state.companion };
+}

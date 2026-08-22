@@ -31,6 +31,7 @@ interface SettingsViewProps {
   onTestHardware: () => void;
   onExport: () => void;
   onResetDemo: () => void;
+  onStartOver: () => void;
 }
 
 function AssignmentRows({ state, onAssign }: Pick<SettingsViewProps, "state" | "onAssign">) {
@@ -251,6 +252,7 @@ export function SettingsView({ state, active, deviceConnected, installState, ...
         <div className="data-actions">
           <button className="button secondary" type="button" onClick={handlers.onExport}>내보내기</button>
           <button className="button quiet danger" type="button" onClick={handlers.onResetDemo}>데모 초기화</button>
+          <button className="button quiet danger" type="button" onClick={handlers.onStartOver}>처음부터 시작</button>
         </div>
       </section>
     </section>
