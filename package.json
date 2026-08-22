@@ -11,9 +11,9 @@
     "build:icons": "node scripts/build-icons.mjs",
     "build:mockup": "npm run build && node scripts/build-public-mockup.mjs",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json && tsc --noEmit -p tsconfig.node.json",
-    "check": "node --check server.mjs && node --check public/sw.js && node --check scripts/build-icons.mjs && node --check scripts/build-public-mockup.mjs",
+    "check": "node --check server.mjs && node --check public/sw.js && node --check scripts/build-icons.mjs && node --check scripts/build-public-mockup.mjs && node --check server/db.mjs",
     "pretest": "npm run build",
-    "test": "node --test --experimental-strip-types tests/server.integration.test.mjs tests/build/*.test.mjs tests/domain/*.test.ts tests/store/*.test.ts tests/sync/*.test.ts tests/device/*.test.ts"
+    "test": "node --test --experimental-strip-types tests/server.integration.test.mjs tests/server/*.test.mjs tests/build/*.test.mjs tests/domain/*.test.ts tests/store/*.test.ts tests/sync/*.test.ts tests/device/*.test.ts"
   },
   "dependencies": {
     "react": "^19.2.8",

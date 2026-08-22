@@ -1,9 +1,9 @@
 import { createReadStream, existsSync, statSync } from "node:fs";
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import { join, normalize, relative, resolve } from "node:path";
 
 import { mimeTypeFor } from "./scripts/mime.mjs";
+import { openDatabase } from "./server/db.mjs";
 
 const root = process.cwd();
 const dataRoot = process.env.HABIT_TOY_DATA_DIR ? resolve(process.env.HABIT_TOY_DATA_DIR) : join(root, ".habit-toy-data");
@@ -39,18 +39,20 @@ function validState(value) {
   return value && typeof value === "object" && Array.isArray(value.categories) && Array.isArray(value.sessions)
     && value.categories.length <= 100 && value.sessions.length <= 10_000;
 }
-function stateFile(clientId) { return join(dataRoot, `${clientId}.json`); }
+const database = openDatabase(dataRoot);
+const imported = database.importLegacyFiles();
+if (imported) console.log(`Imported ${imported} legacy JSON state file(s) into SQLite.`);
 
 async function handleState(request, response, clientId) {
   if (!validClientId(clientId)) return sendJson(response, 400, { error: "Invalid client id" });
-  const file = stateFile(clientId);
   if (request.method === "GET") {
     try {
-      const state = JSON.parse(await readFile(file, "utf8"));
-      sendJson(response, 200, { state });
+      const state = database.loadState(clientId);
+      if (!state) sendJson(response, 404, { error: "No saved state" });
+      else sendJson(response, 200, { state });
     } catch (error) {
-      if (error.code === "ENOENT") sendJson(response, 404, { error: "No saved state" });
-      else sendJson(response, 500, { error: "Unable to read saved state" });
+      console.error("State read error", error.message);
+      sendJson(response, 500, { error: "Unable to read saved state" });
     }
     return;
   }
@@ -60,10 +62,7 @@ async function handleState(request, response, clientId) {
   try {
     const { state } = await readJson(request);
     if (!validState(state)) return sendJson(response, 400, { error: "Invalid Rhythm Hero state" });
-    await mkdir(dataRoot, { recursive: true });
-    const temporary = `${file}.${Date.now()}.tmp`;
-    await writeFile(temporary, JSON.stringify(state), "utf8");
-    await rename(temporary, file);
+    database.saveState(clientId, state);
     sendJson(response, 200, { savedAt: new Date().toISOString() });
   } catch (error) {
     console.error("State persistence error", error.message);
@@ -150,5 +149,12 @@ if (!existsSync(join(clientRoot, "index.html"))) {
 server.listen(port, () => {
   const address = server.address();
   const activePort = typeof address === "object" && address ? address.port : port;
-  console.log(`Rhythm Hero is running at http://localhost:${activePort}`);
+  console.log(`Rhythm Hero is running at http://localhost:${activePort} (SQLite: ${join(dataRoot, "rhythm-hero.db")}, ${database.clientCount()} client(s))`);
 });
+
+for (const signal of ["SIGINT", "SIGTERM"]) {
+  process.on(signal, () => {
+    database.close();
+    process.exit(0);
+  });
+}

@@ -74,7 +74,11 @@ npm run build:icons
 
 기록은 브라우저 `localStorage`에 저장됩니다. 현재 버전은 해커톤 H0 범위를 구현한 프론트엔드 프로토타입이며, 실제 기기는 `window.habitToy.pressButton(1..4)` 브리지를 BLE/Wi-Fi 이벤트 수신기로 교체해 연결할 수 있습니다. 이 브리지는 React 트리 밖에서 스토어에 직접 접근합니다.
 
-앱을 `npm start`로 열면 로컬 저장소를 우선 사용하면서, 같은 브라우저의 기기 ID에 연결된 상태를 서버에도 자동 저장합니다. 서버 데이터는 `.habit-toy-data/`에 저장되며 `.gitignore`에 포함되어 있습니다. 네트워크가 끊겨도 기록은 로컬에 남고, 연결이 복구되면 다시 동기화를 시도합니다.
+앱을 `npm start`로 열면 로컬 저장소를 우선 사용하면서, 같은 브라우저의 기기 ID에 연결된 상태를 서버에도 자동 저장합니다. 서버는 **SQLite**(`.habit-toy-data/rhythm-hero.db`, Node 내장 `node:sqlite`라 의존성 없음)에 `clients` · `categories` · `sessions` 테이블로 저장합니다. 예전 버전이 남긴 `{clientId}.json` 파일은 첫 기동 때 자동으로 가져오고 `.imported`로 이름을 바꿉니다. 이 폴더는 `.gitignore`에 포함되어 있습니다.
+
+```bash
+sqlite3 .habit-toy-data/rhythm-hero.db 'select name, toy_name, updated_at from clients'
+``` 네트워크가 끊겨도 기록은 로컬에 남고, 연결이 복구되면 다시 동기화를 시도합니다.
 
 ## OpenAI 리플렉션 연결
 
